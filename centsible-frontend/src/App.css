@@ -1,0 +1,172 @@
+.app {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #1f2937;
+}
+
+.app-header {
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  font-size: 2rem;
+  margin: 0 0 0.25rem;
+  color: #111827;
+}
+
+.app-header p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.chart-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.chart-card h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  color: #374151;
+}
+
+.chart-message {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.chart-message--error {
+  color: #b91c1c;
+}
+
+.upload-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.upload-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  color: #374151;
+}
+
+.upload-hint {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.upload-hint code {
+  background: #f3f4f6;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.upload-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.upload-controls button {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.upload-controls button:disabled {
+  background: #c7c9f5;
+  cursor: not-allowed;
+}
+
+.upload-message {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+}
+
+.upload-message--success {
+  color: #15803d;
+}
+
+.upload-message--error {
+  color: #b91c1c;
+}
+
+.upload-errors {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.8rem;
+  color: #b91c1c;
+}
+
+.filters-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  position: relative;
+}
+
+.filter-field label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.filter-field input,
+.filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: white;
+}
+
+.filter-hint {
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+.filters-reset {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.4rem 0;
+  text-decoration: underline;
+}

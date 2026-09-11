@@ -1,0 +1,14 @@
+# Backend (Java/Maven)
+centsible-backend/target/
+centsible-backend/data/
+*.class
+
+# Frontend (Node/Vite)
+centsible-frontend/node_modules/
+centsible-frontend/dist/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
