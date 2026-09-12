@@ -1,24 +1,62 @@
+:root {
+  /* Brand Colors */
+  --centsible-primary: #0D6E51;
+  --centsible-primary-hover: #09523D;
+  --centsible-teal: #1B8A70;
+  --centsible-gold: #E5A93C;
+  --centsible-gold-hover: #CC912B;
+  --centsible-mint-bg: #E6F7F2;
+  --centsible-mint-badge: #C5EBE1;
+
+  /* Neutrals & Text */
+  --centsible-dark: #0F172A;
+  --centsible-text-primary: #1E293B;
+  --centsible-text-secondary: #64748B;
+  --centsible-border: #E2E8F0;
+  --centsible-bg-page: #F8FAFC;
+  --centsible-surface: #FFFFFF;
+
+  /* Feedback */
+  --centsible-success: #15803D;
+  --centsible-error: #B91C1C;
+  --centsible-error-bg: #FEF2F2;
+
+  /* Visual Geometry */
+  --centsible-radius: 14px;
+  --centsible-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
 .app {
   max-width: 880px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 4rem;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  color: #1f2937;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--centsible-text-primary);
 }
 
 .app-header {
   margin-bottom: 2rem;
 }
 
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
 .app-header h1 {
   font-size: 2rem;
-  margin: 0 0 0.25rem;
-  color: #111827;
+  font-weight: 800;
+  margin: 0;
+  color: var(--centsible-dark);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
 }
 
 .app-header p {
-  margin: 0;
-  color: #6b7280;
+  margin: 0.35rem 0 0;
+  color: var(--centsible-text-secondary);
+  font-size: 0.925rem;
 }
 
 .app-main {
@@ -28,54 +66,61 @@
 }
 
 .chart-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--centsible-surface);
+  border: 1px solid var(--centsible-border);
+  border-radius: var(--centsible-radius);
   padding: 1.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--centsible-shadow);
 }
 
 .chart-card h2 {
   margin: 0 0 1rem;
-  font-size: 1.1rem;
-  color: #374151;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--centsible-dark);
+  letter-spacing: -0.015em;
 }
 
 .chart-message {
   padding: 2rem;
   text-align: center;
-  color: #6b7280;
+  color: var(--centsible-text-secondary);
 }
 
 .chart-message--error {
-  color: #b91c1c;
+  color: var(--centsible-error);
 }
 
 .upload-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--centsible-surface);
+  border: 1px solid var(--centsible-border);
+  border-radius: var(--centsible-radius);
   padding: 1.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--centsible-shadow);
 }
 
 .upload-card h2 {
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
-  color: #374151;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--centsible-dark);
+  letter-spacing: -0.015em;
 }
 
 .upload-hint {
-  margin: 0 0 1rem;
+  margin: 0 0 1.15rem;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--centsible-text-secondary);
+  line-height: 1.45;
 }
 
 .upload-hint code {
-  background: #f3f4f6;
-  padding: 0.1rem 0.35rem;
+  background: var(--centsible-mint-bg);
+  color: var(--centsible-primary);
+  padding: 0.15rem 0.4rem;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: 0.825rem;
+  font-weight: 600;
 }
 
 .upload-controls {
@@ -85,18 +130,29 @@
   flex-wrap: wrap;
 }
 
+.upload-controls input[type="file"] {
+  font-size: 0.875rem;
+  color: var(--centsible-text-primary);
+}
+
 .upload-controls button {
-  background: #4f46e5;
+  background: var(--centsible-primary);
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 0.5rem 1rem;
+  padding: 0.55rem 1.25rem;
   font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.upload-controls button:hover:not(:disabled) {
+  background: var(--centsible-primary-hover);
 }
 
 .upload-controls button:disabled {
-  background: #c7c9f5;
+  background: #94D3C2;
   cursor: not-allowed;
 }
 
@@ -106,18 +162,28 @@
 }
 
 .upload-message--success {
-  color: #15803d;
+  color: var(--centsible-primary);
+  background: var(--centsible-mint-bg);
+  border: 1px solid var(--centsible-mint-badge);
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  display: inline-block;
+  font-weight: 500;
 }
 
 .upload-message--error {
-  color: #b91c1c;
+  color: var(--centsible-error);
+  background: var(--centsible-error-bg);
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  display: inline-block;
 }
 
 .upload-errors {
   margin: 0.5rem 0 0;
   padding-left: 1.25rem;
   font-size: 0.8rem;
-  color: #b91c1c;
+  color: var(--centsible-error);
 }
 
 .filters-bar {
@@ -125,48 +191,63 @@
   align-items: flex-end;
   gap: 1.25rem;
   flex-wrap: wrap;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--centsible-surface);
+  border: 1px solid var(--centsible-border);
+  border-radius: var(--centsible-radius);
   padding: 1rem 1.5rem;
+  box-shadow: var(--centsible-shadow);
 }
 
 .filter-field {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.35rem;
   position: relative;
 }
 
 .filter-field label {
   font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 600;
+  color: var(--centsible-text-secondary);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .filter-field input,
 .filter-field select {
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--centsible-border);
+  border-radius: 7px;
+  padding: 0.45rem 0.65rem;
   font-size: 0.875rem;
-  color: #1f2937;
-  background: white;
+  color: var(--centsible-text-primary);
+  background: var(--centsible-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+  outline: none;
+  border-color: var(--centsible-primary);
+  box-shadow: 0 0 0 3px rgba(13, 110, 81, 0.15);
 }
 
 .filter-hint {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--centsible-text-secondary);
 }
 
 .filters-reset {
   background: none;
   border: none;
-  color: #4f46e5;
+  color: var(--centsible-teal);
   font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  padding: 0.4rem 0;
+  padding: 0.45rem 0;
   text-decoration: underline;
+  transition: color 0.15s ease;
+}
+
+.filters-reset:hover {
+  color: var(--centsible-primary);
 }

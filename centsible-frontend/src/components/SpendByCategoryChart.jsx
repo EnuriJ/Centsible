@@ -19,8 +19,8 @@ function formatCurrency(value) {
   }).format(value)
 }
 
-const HIGHLIGHT_COLOR = '#4f46e5'
-const DIMMED_COLOR = '#d8d9f5'
+const HIGHLIGHT_COLOR = '#0D6E51'
+const DIMMED_COLOR = '#C5EBE1'
 
 // Note: `category` is only used here to highlight a bar, not to refetch -
 // the data itself always includes all categories, since that's the axis

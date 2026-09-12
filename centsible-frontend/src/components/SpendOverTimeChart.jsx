@@ -68,9 +68,10 @@ export default function SpendOverTimeChart({ refreshKey, startDate, endDate, cat
             <Line
               type="monotone"
               dataKey="totalSpent"
-              stroke="#4f46e5"
-              strokeWidth={2}
-              dot={{ r: 4 }}
+              stroke="#0D6E51"
+              strokeWidth={2.5}
+              dot={{ r: 4, fill: '#0D6E51' }}
+              activeDot={{ r: 6, fill: '#E5A93C', stroke: '#FFFFFF', strokeWidth: 2 }}
             />
           </LineChart>
         </ResponsiveContainer>

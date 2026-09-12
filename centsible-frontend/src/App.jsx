@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import Logo from './components/Logo'
 import SpendByCategoryChart from './components/SpendByCategoryChart'
 import SpendOverTimeChart from './components/SpendOverTimeChart'
 import CsvUploadForm from './components/CsvUploadForm'
@@ -16,8 +17,13 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Centsible</h1>
-        <p>Your spending, at a glance</p>
+        <div className="app-brand">
+          <Logo size={40} showText={false} />
+          <div>
+            <h1>Centsible</h1>
+            <p>Smart finance made simple &bull; Your spending at a glance</p>
+          </div>
+        </div>
       </header>
 
       <main className="app-main">
