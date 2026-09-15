@@ -1,6 +1,6 @@
-# Centsible — Frontend (Step 2)
+# Centsible — Frontend 
 
-React + Vite frontend. This step renders the first chart: a bar chart of
+React + Vite frontend. This renders the first chart: a bar chart of
 total spend per category, fed by the backend's new aggregation endpoint.
 
 ## Requirements
@@ -29,8 +29,3 @@ Then open the URL Vite prints (usually http://localhost:5173).
 - **CORS error in the browser console** — the backend's `AnalyticsController`
   already allows `http://localhost:5173` and `http://localhost:3000`. If Vite
   starts on a different port, add it to the `@CrossOrigin` origins list.
-
-## Next up (not built yet)
-- A second chart: spend over time (line chart)
-- Filters (date range, category)
-- CSV upload to replace the seeded sample data

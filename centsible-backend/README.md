@@ -1,6 +1,6 @@
-# Centsible — Backend (Step 1)
+# Centsible — Backend 
 
-Personal finance dashboard backend. This step sets up the data model (Category, Transaction),
+Personal finance dashboard backend. This sets up the data model (Category, Transaction),
 an H2 file-based database, and seeds it with ~30 realistic sample transactions across
 2 months so there's real data to build against before CSV upload exists.
 
