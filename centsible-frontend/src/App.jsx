@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react'
 import Logo from './components/Logo'
+import FinancialSummary from './components/FinancialSummary'
 import SpendByCategoryChart from './components/SpendByCategoryChart'
+import IncomeByCategoryTable from './components/IncomeByCategoryTable'
+import CashFlowChart from './components/CashFlowChart'
 import SpendOverTimeChart from './components/SpendOverTimeChart'
 import CsvUploadForm from './components/CsvUploadForm'
 import FiltersBar from './components/FiltersBar'
@@ -21,23 +24,51 @@ function App() {
           <Logo size={40} showText={false} />
           <div>
             <h1>Centsible</h1>
-            <p>Smart finance made simple &bull; Your spending at a glance</p>
+            <p>Smart finance made simple &bull; Your income & spending at a glance</p>
           </div>
         </div>
       </header>
 
       <main className="app-main">
+        {/* CSV Import Section */}
         <CsvUploadForm onUploadSuccess={handleUploadSuccess} />
 
+        {/* Global Filter Bar */}
         <FiltersBar filters={filters} onChange={setFilters} />
 
-        <SpendByCategoryChart
+        {/* Dynamic Financial Narrative Description & Metric Cards */}
+        <FinancialSummary
           refreshKey={refreshKey}
           startDate={filters.startDate}
           endDate={filters.endDate}
           category={filters.category}
         />
 
+        {/* Side-by-Side Category Breakdown Grid */}
+        <div className="dashboard-grid">
+          <SpendByCategoryChart
+            refreshKey={refreshKey}
+            startDate={filters.startDate}
+            endDate={filters.endDate}
+            category={filters.category}
+          />
+
+          <IncomeByCategoryTable
+            refreshKey={refreshKey}
+            startDate={filters.startDate}
+            endDate={filters.endDate}
+          />
+        </div>
+
+        {/* Cash Flow Comparison Chart (Monthly Income vs. Expenses vs. Net Savings) */}
+        <CashFlowChart
+          refreshKey={refreshKey}
+          startDate={filters.startDate}
+          endDate={filters.endDate}
+          category={filters.category}
+        />
+
+        {/* Category-Specific Spending Trend */}
         <SpendOverTimeChart
           refreshKey={refreshKey}
           startDate={filters.startDate}

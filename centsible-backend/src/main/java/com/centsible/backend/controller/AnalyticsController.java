@@ -1,6 +1,9 @@
 package com.centsible.backend.controller;
 
+import com.centsible.backend.dto.CategoryIncomeDTO;
 import com.centsible.backend.dto.CategorySpendDTO;
+import com.centsible.backend.dto.FinancialSummaryDTO;
+import com.centsible.backend.dto.MonthlyCashFlowDTO;
 import com.centsible.backend.dto.MonthlySpendDTO;
 import com.centsible.backend.service.AnalyticsService;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -17,8 +20,6 @@ import java.util.List;
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 public class AnalyticsController {
 
-    // Sentinel bounds used when the caller doesn't specify a date range,
-    // so "no filter" doesn't require special-casing null dates downstream.
     private static final LocalDate DEFAULT_START = LocalDate.of(1900, 1, 1);
     private static final LocalDate DEFAULT_END = LocalDate.of(9999, 12, 31);
 
@@ -28,24 +29,56 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
-    // GET /api/analytics/spend-by-category?startDate=2026-06-01&endDate=2026-07-31
+    // GET /api/analytics/summary?startDate=...&endDate=...&category=...
+    @GetMapping("/summary")
+    public FinancialSummaryDTO getSummary(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String category) {
+        LocalDate start = startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate) : DEFAULT_START;
+        LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : DEFAULT_END;
+        return analyticsService.getFinancialSummary(start, end, category);
+    }
+
+    // GET /api/analytics/spend-by-category?startDate=...&endDate=...
     @GetMapping("/spend-by-category")
     public List<CategorySpendDTO> spendByCategory(
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
-        LocalDate start = startDate != null ? LocalDate.parse(startDate) : DEFAULT_START;
-        LocalDate end = endDate != null ? LocalDate.parse(endDate) : DEFAULT_END;
+        LocalDate start = startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate) : DEFAULT_START;
+        LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : DEFAULT_END;
         return analyticsService.getSpendByCategory(start, end);
     }
 
-    // GET /api/analytics/spend-over-time?startDate=...&endDate=...&category=Groceries
+    // GET /api/analytics/income-by-category?startDate=...&endDate=...
+    @GetMapping("/income-by-category")
+    public List<CategoryIncomeDTO> incomeByCategory(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        LocalDate start = startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate) : DEFAULT_START;
+        LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : DEFAULT_END;
+        return analyticsService.getIncomeByCategory(start, end);
+    }
+
+    // GET /api/analytics/spend-over-time?startDate=...&endDate=...&category=...
     @GetMapping("/spend-over-time")
     public List<MonthlySpendDTO> spendOverTime(
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String category) {
-        LocalDate start = startDate != null ? LocalDate.parse(startDate) : DEFAULT_START;
-        LocalDate end = endDate != null ? LocalDate.parse(endDate) : DEFAULT_END;
+        LocalDate start = startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate) : DEFAULT_START;
+        LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : DEFAULT_END;
         return analyticsService.getSpendOverTime(start, end, category);
+    }
+
+    // GET /api/analytics/cash-flow-over-time?startDate=...&endDate=...&category=...
+    @GetMapping("/cash-flow-over-time")
+    public List<MonthlyCashFlowDTO> cashFlowOverTime(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String category) {
+        LocalDate start = startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate) : DEFAULT_START;
+        LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : DEFAULT_END;
+        return analyticsService.getCashFlowOverTime(start, end, category);
     }
 }

@@ -16,19 +16,22 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByDateBetween(LocalDate start, LocalDate end);
 
-    // All expense rows in a date range, oldest first. Used to bucket by
-    // month (and optionally filter by category) in the service layer.
+    // All transactions in a date range, oldest first (used for cash flow & summary)
+    List<Transaction> findByDateBetweenOrderByDateAsc(LocalDate startDate, LocalDate endDate);
+
+    // All expense rows in a date range, oldest first.
     List<Transaction> findByAmountLessThanAndDateBetweenOrderByDateAsc(
             BigDecimal amount, LocalDate startDate, LocalDate endDate);
 
-    // Used by CSV import to skip rows that already exist, so re-uploading
-    // the same file (or an overlapping export) doesn't create duplicates.
+    // All income rows in a date range, oldest first.
+    List<Transaction> findByAmountGreaterThanAndDateBetweenOrderByDateAsc(
+            BigDecimal amount, LocalDate startDate, LocalDate endDate);
+
+    // Used by CSV import to skip rows that already exist
     boolean existsByDateAndDescriptionAndAmountAndCategory(
             LocalDate date, String description, BigDecimal amount, Category category);
 
-    // Only counts expenses (amount < 0), sums their absolute value per category,
-    // restricted to a date range. Income transactions are excluded so "spend"
-    // actually means spend.
+    // Aggregate expenses (amount < 0), sums absolute value per category
     @Query("SELECT t.category.name AS category, SUM(ABS(t.amount)) AS totalSpent " +
            "FROM Transaction t " +
            "WHERE t.amount < 0 " +
@@ -37,5 +40,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "ORDER BY totalSpent DESC")
     List<CategorySpendProjection> aggregateSpendByCategory(
             @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    // Aggregate income (amount > 0), sums value per category
+    @Query("SELECT t.category.name AS category, SUM(t.amount) AS totalIncome " +
+           "FROM Transaction t " +
+           "WHERE t.amount > 0 " +
+           "AND t.date BETWEEN :startDate AND :endDate " +
+           "GROUP BY t.category.name " +
+           "ORDER BY totalIncome DESC")
+    List<CategoryIncomeProjection> aggregateIncomeByCategory(
+            @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT MIN(t.date) FROM Transaction t")
+    LocalDate findMinDate();
+
+    @Query("SELECT MAX(t.date) FROM Transaction t")
+    LocalDate findMaxDate();
 
 }

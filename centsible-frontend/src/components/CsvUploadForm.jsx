@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import api from '../api/client'
 
+function formatCurrency(value) {
+  if (value === null || value === undefined) return '$0.00'
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
 export default function CsvUploadForm({ onUploadSuccess }) {
   const [file, setFile] = useState(null)
   const [status, setStatus] = useState('idle') // idle | uploading | success | error
@@ -37,8 +46,8 @@ export default function CsvUploadForm({ onUploadSuccess }) {
       <h2>Import Transactions</h2>
       <p className="upload-hint">
         CSV columns: <code>date, description, amount, category</code> — amount
-        negative for expenses, positive for income. New categories are
-        created automatically.
+        positive for income, negative for expenses. Both income and expenses
+        can be uploaded together in the same file; new categories are created automatically.
       </p>
 
       <div className="upload-controls">
@@ -49,18 +58,24 @@ export default function CsvUploadForm({ onUploadSuccess }) {
       </div>
 
       {status === 'success' && result && (
-        <p className="upload-message upload-message--success">
-          Imported {result.imported} transaction{result.imported === 1 ? '' : 's'}
-          {result.skipped > 0 ? `, skipped ${result.skipped} row(s) with errors.` : '.'}
-        </p>
+        <div className="upload-success-card">
+          <p className="upload-message upload-message--success">
+            Imported <strong>{result.imported}</strong> transaction{result.imported === 1 ? '' : 's'}:{' '}
+            {result.incomeCount} income ({formatCurrency(result.totalIncome)}) and{' '}
+            {result.expenseCount} expense{result.expenseCount === 1 ? '' : 's'} ({formatCurrency(result.totalExpense)})
+            {result.categoriesCount ? ` across ${result.categoriesCount} categories` : ''}.
+            {result.skipped > 0 ? ` Skipped ${result.skipped} row(s).` : ''}
+          </p>
+          {result.skipped > 0 && result.errors?.length > 0 && (
+            <ul className="upload-errors">
+              {result.errors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
-      {status === 'success' && result?.skipped > 0 && (
-        <ul className="upload-errors">
-          {result.errors.map((err, i) => (
-            <li key={i}>{err}</li>
-          ))}
-        </ul>
-      )}
+
       {status === 'error' && (
         <p className="upload-message upload-message--error">
           Upload failed. Check the backend is running and the file is a valid CSV.

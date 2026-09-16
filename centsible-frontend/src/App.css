@@ -27,7 +27,7 @@
 }
 
 .app {
-  max-width: 880px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 4rem;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -62,9 +62,161 @@
 .app-main {
   display: flex;
   flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* Financial Summary & Narrative Banner */
+.summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.summary-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.15rem;
+  background: linear-gradient(135deg, #E6F7F2 0%, #F0FDF8 100%);
+  border: 1px solid var(--centsible-mint-badge);
+  border-left: 4px solid var(--centsible-primary);
+  border-radius: var(--centsible-radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--centsible-shadow);
+}
+
+.summary-banner--loading {
+  background: #f1f5f9;
+  border-left-color: #94a3b8;
+  padding: 1rem 1.5rem;
+}
+
+.summary-banner__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(13, 110, 81, 0.1);
+  flex-shrink: 0;
+}
+
+.summary-banner__content h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--centsible-dark);
+  letter-spacing: -0.015em;
+}
+
+.summary-banner__content p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--centsible-text-primary);
+}
+
+/* KPI Metric Cards Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.metric-card {
+  background: var(--centsible-surface);
+  border: 1px solid var(--centsible-border);
+  border-radius: var(--centsible-radius);
+  padding: 1.25rem;
+  box-shadow: var(--centsible-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.metric-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: var(--centsible-text-secondary);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric-badge {
+  font-size: 0.725rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.metric-badge--income {
+  background: var(--centsible-mint-bg);
+  color: var(--centsible-primary);
+}
+
+.metric-badge--expense {
+  background: #FFE4E6;
+  color: #BE123C;
+}
+
+.metric-badge--savings {
+  background: var(--centsible-mint-bg);
+  color: var(--centsible-primary);
+}
+
+.metric-badge--deficit {
+  background: #FFE4E6;
+  color: #BE123C;
+}
+
+.metric-badge--rate {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.metric-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--centsible-dark);
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.metric-value--positive {
+  color: var(--centsible-primary);
+}
+
+.metric-value--negative {
+  color: #E11D48;
+}
+
+.metric-subtext {
+  font-size: 0.8rem;
+  color: var(--centsible-text-secondary);
+  margin-top: 0.15rem;
+}
+
+/* Dual Column Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 1.5rem;
 }
 
+@media (max-width: 860px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Generic Chart Card */
 .chart-card {
   background: var(--centsible-surface);
   border: 1px solid var(--centsible-border);
@@ -74,11 +226,17 @@
 }
 
 .chart-card h2 {
-  margin: 0 0 1rem;
+  margin: 0 0 0.5rem;
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--centsible-dark);
   letter-spacing: -0.015em;
+}
+
+.chart-subtitle {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--centsible-text-secondary);
 }
 
 .chart-message {
@@ -91,6 +249,104 @@
   color: var(--centsible-error);
 }
 
+/* Income Breakdown Table Card */
+.income-breakdown-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.income-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.income-card-header h2 {
+  margin: 0;
+}
+
+.income-card-total {
+  font-size: 0.875rem;
+  color: var(--centsible-text-secondary);
+}
+
+.income-card-total strong {
+  color: var(--centsible-primary);
+  font-size: 1rem;
+}
+
+.income-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.income-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.income-row__info {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.income-row__title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.income-category-name {
+  font-weight: 600;
+  color: var(--centsible-dark);
+  font-size: 0.925rem;
+}
+
+.income-category-count {
+  font-size: 0.75rem;
+  color: var(--centsible-text-secondary);
+}
+
+.income-row__amount {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.income-row__amount strong {
+  font-size: 0.95rem;
+  color: var(--centsible-primary);
+  font-weight: 700;
+}
+
+.income-percentage {
+  font-size: 0.775rem;
+  color: var(--centsible-text-secondary);
+  min-width: 40px;
+  text-align: right;
+}
+
+.income-progress-bar {
+  height: 6px;
+  background: #F1F5F9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.income-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1B8A70 0%, #0D6E51 100%);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Upload Card & Controls */
 .upload-card {
   background: var(--centsible-surface);
   border: 1px solid var(--centsible-border);
@@ -156,8 +412,12 @@
   cursor: not-allowed;
 }
 
+.upload-success-card {
+  margin-top: 1rem;
+}
+
 .upload-message {
-  margin: 1rem 0 0;
+  margin: 0;
   font-size: 0.9rem;
 }
 
@@ -165,18 +425,20 @@
   color: var(--centsible-primary);
   background: var(--centsible-mint-bg);
   border: 1px solid var(--centsible-mint-badge);
-  padding: 0.6rem 0.85rem;
+  padding: 0.65rem 0.95rem;
   border-radius: 8px;
   display: inline-block;
   font-weight: 500;
+  line-height: 1.45;
 }
 
 .upload-message--error {
   color: var(--centsible-error);
   background: var(--centsible-error-bg);
-  padding: 0.6rem 0.85rem;
+  padding: 0.65rem 0.95rem;
   border-radius: 8px;
   display: inline-block;
+  margin-top: 1rem;
 }
 
 .upload-errors {
@@ -186,6 +448,7 @@
   color: var(--centsible-error);
 }
 
+/* Filters Bar */
 .filters-bar {
   display: flex;
   align-items: flex-end;

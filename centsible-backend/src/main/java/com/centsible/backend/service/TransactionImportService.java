@@ -19,8 +19,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class TransactionImportService {
@@ -37,18 +39,22 @@ public class TransactionImportService {
     /**
      * Expected CSV columns: date, description, amount, category
      * - date: ISO format, e.g. 2026-08-01
-     * - amount: negative for expenses, positive for income
+     * - amount: positive for income, negative for expenses
      * - category: created automatically if it doesn't already exist
      * <p>
-     * Bad individual rows are skipped and reported rather than failing the
-     * whole import - a single typo shouldn't block 200 good rows.
+     * Both income and expense transactions are ingested together from the single file.
+     * Bad individual rows are skipped and reported rather than failing the whole import.
      */
     public ImportResultDTO importCsv(MultipartFile file) {
         int imported = 0;
+        int incomeCount = 0;
+        int expenseCount = 0;
+        BigDecimal totalIncome = BigDecimal.ZERO;
+        BigDecimal totalExpense = BigDecimal.ZERO;
+        Set<String> encounteredCategories = new HashSet<>();
         List<String> errors = new ArrayList<>();
 
-        // Cache categories we've already looked up/created this request, so a
-        // CSV with 100 "Groceries" rows only hits the DB for that category once.
+        // Cache categories we've already looked up/created this request
         Map<String, Category> categoryCache = new HashMap<>();
 
         try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
@@ -85,6 +91,15 @@ public class TransactionImportService {
 
                     transactionRepository.save(new Transaction(date, description, amount, category));
                     imported++;
+                    encounteredCategories.add(categoryName);
+
+                    if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                        incomeCount++;
+                        totalIncome = totalIncome.add(amount);
+                    } else if (amount.compareTo(BigDecimal.ZERO) < 0) {
+                        expenseCount++;
+                        totalExpense = totalExpense.add(amount.abs());
+                    }
                 } catch (Exception rowError) {
                     errors.add("Row " + record.getRecordNumber() + ": " + rowError.getMessage());
                 }
@@ -93,6 +108,15 @@ public class TransactionImportService {
             errors.add("Could not read the uploaded file: " + e.getMessage());
         }
 
-        return new ImportResultDTO(imported, errors.size(), errors);
+        return new ImportResultDTO(
+                imported,
+                errors.size(),
+                errors,
+                incomeCount,
+                expenseCount,
+                totalIncome,
+                totalExpense,
+                encounteredCategories.size()
+        );
     }
 }
