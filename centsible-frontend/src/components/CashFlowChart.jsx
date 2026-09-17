@@ -11,15 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import api from '../api/client'
-
-function formatCurrency(value) {
-  if (value === null || value === undefined) return '$0'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+import { formatLKR, formatCompactLKR } from '../utils/currency'
 
 export default function CashFlowChart({ refreshKey, startDate, endDate, category }) {
   const [data, setData] = useState([])
@@ -61,7 +53,7 @@ export default function CashFlowChart({ refreshKey, startDate, endDate, category
       <div className="cash-flow-header">
         <div>
           <h2>Monthly Cash Flow (Income vs. Expenses)</h2>
-          <p className="chart-subtitle">Compare monthly inflows against spending and monitor your net savings trend</p>
+          <p className="chart-subtitle">Compare monthly inflows against spending and monitor your net savings trend in LKR</p>
         </div>
       </div>
 
@@ -72,10 +64,10 @@ export default function CashFlowChart({ refreshKey, startDate, endDate, category
           <ComposedChart data={data} margin={{ top: 12, right: 24, left: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-            <YAxis tickFormatter={formatCurrency} width={75} />
+            <YAxis tickFormatter={formatCompactLKR} width={80} />
             <Tooltip
               formatter={(value, name) => [
-                formatCurrency(value),
+                formatLKR(value),
                 name === 'totalIncome' ? 'Income' : name === 'totalExpense' ? 'Expenses' : 'Net Savings',
               ]}
             />

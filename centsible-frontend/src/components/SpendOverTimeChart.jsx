@@ -9,14 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import api from '../api/client'
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+import { formatLKR, formatCompactLKR } from '../utils/currency'
 
 export default function SpendOverTimeChart({ refreshKey, startDate, endDate, category }) {
   const [data, setData] = useState([])
@@ -61,10 +54,10 @@ export default function SpendOverTimeChart({ refreshKey, startDate, endDate, cat
       ) : (
         <ResponsiveContainer width="100%" height={320}>
           <LineChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-            <YAxis tickFormatter={formatCurrency} width={70} />
-            <Tooltip formatter={(value) => formatCurrency(value)} />
+            <YAxis tickFormatter={formatCompactLKR} width={80} />
+            <Tooltip formatter={(value) => [formatLKR(value), 'Total Spent']} />
             <Line
               type="monotone"
               dataKey="totalSpent"

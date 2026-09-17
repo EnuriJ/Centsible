@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
-
-function formatCurrency(value) {
-  if (value === null || value === undefined) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+import { formatLKR } from '../utils/currency'
 
 export default function IncomeByCategoryTable({ refreshKey, startDate, endDate }) {
   const [data, setData] = useState([])
@@ -40,7 +32,7 @@ export default function IncomeByCategoryTable({ refreshKey, startDate, endDate }
         <h2>Income Sources</h2>
         {status === 'ready' && data.length > 0 && (
           <span className="income-card-total">
-            Total: <strong>{formatCurrency(totalIncome)}</strong>
+            Total: <strong>{formatLKR(totalIncome)}</strong>
           </span>
         )}
       </div>
@@ -69,7 +61,7 @@ export default function IncomeByCategoryTable({ refreshKey, startDate, endDate }
                   </span>
                 </div>
                 <div className="income-row__amount">
-                  <strong>{formatCurrency(item.totalIncome)}</strong>
+                  <strong>{formatLKR(item.totalIncome)}</strong>
                   <span className="income-percentage">{item.percentage?.toFixed(1)}%</span>
                 </div>
               </div>

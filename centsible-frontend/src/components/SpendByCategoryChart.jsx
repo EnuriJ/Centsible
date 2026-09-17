@@ -10,24 +10,14 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import api from '../api/client'
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+import { formatLKR, formatCompactLKR } from '../utils/currency'
 
 const HIGHLIGHT_COLOR = '#0D6E51'
 const DIMMED_COLOR = '#C5EBE1'
 
-// Note: `category` is only used here to highlight a bar, not to refetch -
-// the data itself always includes all categories, since that's the axis
-// this chart groups by.
 export default function SpendByCategoryChart({ refreshKey, startDate, endDate, category }) {
   const [data, setData] = useState([])
-  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
+  const [status, setStatus] = useState('loading')
 
   useEffect(() => {
     setStatus('loading')
@@ -67,10 +57,10 @@ export default function SpendByCategoryChart({ refreshKey, startDate, endDate, c
       ) : (
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis dataKey="category" tick={{ fontSize: 12 }} />
-            <YAxis tickFormatter={formatCurrency} width={70} />
-            <Tooltip formatter={(value) => formatCurrency(value)} />
+            <YAxis tickFormatter={formatCompactLKR} width={75} />
+            <Tooltip formatter={(value) => [formatLKR(value), 'Total Spent']} />
             <Bar dataKey="totalSpent" radius={[4, 4, 0, 0]}>
               {data.map((entry) => (
                 <Cell

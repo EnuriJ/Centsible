@@ -1,15 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
-
-function formatCurrency(value) {
-  if (value === null || value === undefined) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)
-}
+import { formatLKR } from '../utils/currency'
 
 export default function FinancialSummary({ refreshKey, startDate, endDate, category }) {
   const [summary, setSummary] = useState(null)
@@ -79,10 +70,10 @@ export default function FinancialSummary({ refreshKey, startDate, endDate, categ
             <span className="metric-label">Total Income</span>
             <span className="metric-badge metric-badge--income">+{summary.incomeCount} txns</span>
           </div>
-          <div className="metric-value">{formatCurrency(summary.totalIncome)}</div>
+          <div className="metric-value">{formatLKR(summary.totalIncome)}</div>
           {summary.topIncomeCategory && (
             <div className="metric-subtext">
-              Primary: <strong>{summary.topIncomeCategory}</strong> ({formatCurrency(summary.topIncomeAmount)})
+              Primary: <strong>{summary.topIncomeCategory}</strong> ({formatLKR(summary.topIncomeAmount)})
             </div>
           )}
         </div>
@@ -92,7 +83,7 @@ export default function FinancialSummary({ refreshKey, startDate, endDate, categ
             <span className="metric-label">Total Expenses</span>
             <span className="metric-badge metric-badge--expense">-{summary.expenseCount} txns</span>
           </div>
-          <div className="metric-value">{formatCurrency(summary.totalExpense)}</div>
+          <div className="metric-value">{formatLKR(summary.totalExpense)}</div>
           {summary.topExpenseCategory && (
             <div className="metric-subtext">
               Top: <strong>{summary.topExpenseCategory}</strong> ({summary.topExpensePercentage?.toFixed(1)}%)
@@ -108,7 +99,7 @@ export default function FinancialSummary({ refreshKey, startDate, endDate, categ
             </span>
           </div>
           <div className={`metric-value ${isPositiveSavings ? 'metric-value--positive' : 'metric-value--negative'}`}>
-            {isPositiveSavings ? '+' : ''}{formatCurrency(summary.netSavings)}
+            {isPositiveSavings ? '+' : ''}{formatLKR(summary.netSavings)}
           </div>
           <div className="metric-subtext">
             {isPositiveSavings ? 'Retained savings after expenses' : 'Expenses exceed income'}
