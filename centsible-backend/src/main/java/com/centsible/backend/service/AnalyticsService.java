@@ -237,10 +237,7 @@ public class AnalyticsService {
         dto.setTopIncomeCategory(topIncomeCategory);
         dto.setTopIncomeAmount(topIncomeAmount);
 
-        // Format narrative
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.US);
-        currencyFormat.setMaximumFractionDigits(2);
-
+        // Format narrative in LKR (Rs. )
         String periodText;
         if (effectiveStart.getYear() == effectiveEnd.getYear() &&
             effectiveStart.getMonth() == effectiveEnd.getMonth() &&
@@ -255,14 +252,14 @@ public class AnalyticsService {
         dto.setFormattedDateRange(periodText);
 
         StringBuilder narrative = new StringBuilder();
-        narrative.append("Your income ").append(periodText).append(" is ").append(currencyFormat.format(totalIncome)).append(". ");
+        narrative.append("Your income ").append(periodText).append(" is ").append(formatLkr(totalIncome)).append(". ");
 
-        narrative.append("Your expenses totaled ").append(currencyFormat.format(totalExpense));
+        narrative.append("Your expenses totaled ").append(formatLkr(totalExpense));
         if (topExpenseCategory != null && topExpenseAmount.compareTo(BigDecimal.ZERO) > 0) {
             narrative.append(" with majority spent on the ")
                     .append(topExpenseCategory)
                     .append(" category (")
-                    .append(currencyFormat.format(topExpenseAmount))
+                    .append(formatLkr(topExpenseAmount))
                     .append(", ")
                     .append(String.format(Locale.US, "%.1f%%", topExpensePercentage))
                     .append(" of expenses). ");
@@ -272,17 +269,22 @@ public class AnalyticsService {
 
         if (netSavings.compareTo(BigDecimal.ZERO) >= 0) {
             narrative.append("Your net savings is ")
-                    .append(currencyFormat.format(netSavings))
+                    .append(formatLkr(netSavings))
                     .append(" with a savings rate of ")
                     .append(String.format(Locale.US, "%.1f%%", savingsRate))
                     .append(".");
         } else {
             narrative.append("Your expenses exceeded your income by ")
-                    .append(currencyFormat.format(netSavings.abs()))
+                    .append(formatLkr(netSavings.abs()))
                     .append(".");
         }
 
         dto.setNarrative(narrative.toString());
         return dto;
+    }
+
+    private String formatLkr(BigDecimal amount) {
+        if (amount == null) return "Rs. 0.00";
+        return "Rs. " + String.format(Locale.US, "%,.2f", amount);
     }
 }
