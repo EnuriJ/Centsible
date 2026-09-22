@@ -1,14 +1,6 @@
 import { useState } from 'react'
 import api from '../api/client'
-
-function formatCurrency(value) {
-  if (value === null || value === undefined) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
-  }).format(value)
-}
+import { formatLKR } from '../utils/currency'
 
 export default function CsvUploadForm({ onUploadSuccess }) {
   const [file, setFile] = useState(null)
@@ -48,10 +40,11 @@ export default function CsvUploadForm({ onUploadSuccess }) {
         CSV columns: <code>date, description, amount, category</code> — amount
         positive for income, negative for expenses. Both income and expenses
         can be uploaded together in the same file; new categories are created automatically.
+        Bank statement PDFs are also supported.
       </p>
 
       <div className="upload-controls">
-        <input type="file" accept=".csv" onChange={handleFileChange} />
+        <input type="file" accept=".csv,.pdf" onChange={handleFileChange} />
         <button onClick={handleUpload} disabled={!file || status === 'uploading'}>
           {status === 'uploading' ? 'Uploading…' : 'Upload'}
         </button>
@@ -61,8 +54,8 @@ export default function CsvUploadForm({ onUploadSuccess }) {
         <div className="upload-success-card">
           <p className="upload-message upload-message--success">
             Imported <strong>{result.imported}</strong> transaction{result.imported === 1 ? '' : 's'}:{' '}
-            {result.incomeCount} income ({formatCurrency(result.totalIncome)}) and{' '}
-            {result.expenseCount} expense{result.expenseCount === 1 ? '' : 's'} ({formatCurrency(result.totalExpense)})
+            {result.incomeCount} income ({formatLKR(result.totalIncome)}) and{' '}
+            {result.expenseCount} expense{result.expenseCount === 1 ? '' : 's'} ({formatLKR(result.totalExpense)})
             {result.categoriesCount ? ` across ${result.categoriesCount} categories` : ''}.
             {result.skipped > 0 ? ` Skipped ${result.skipped} row(s).` : ''}
           </p>
@@ -78,7 +71,7 @@ export default function CsvUploadForm({ onUploadSuccess }) {
 
       {status === 'error' && (
         <p className="upload-message upload-message--error">
-          Upload failed. Check the backend is running and the file is a valid CSV.
+          Upload failed. Check the backend is running and the file is a valid CSV or PDF.
         </p>
       )}
     </div>
