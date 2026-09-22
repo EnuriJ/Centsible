@@ -57,6 +57,16 @@ public class TransactionImportService {
             "([0-9,]+\\.\\d{2})(?:\\s+([0-9,]+\\.\\d{2}))?$"                       // Amount and optional Balance
     );
 
+    // The extractor emits one line per PDF text-positioning command, which in
+    // practice means one line per table CELL rather than one line per table
+    // ROW - each date, the description, the amount, and the balance are all
+    // separately-positioned text fragments. These match a single cell's worth
+    // of content, used to reassemble cells back into one row per transaction.
+    private static final Pattern DATE_TOKEN_PATTERN = Pattern.compile(
+            "^(?:\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4}|\\d{1,2}/\\d{1,2}/\\d{2,4})$"
+    );
+    private static final Pattern AMOUNT_TOKEN_PATTERN = Pattern.compile("^[0-9,]+\\.\\d{2}$");
+
     public TransactionImportService(TransactionRepository transactionRepository,
                                      CategoryRepository categoryRepository,
                                      CategorizationService categorizationService) {
@@ -186,22 +196,34 @@ public class TransactionImportService {
 
         try {
             byte[] pdfBytes = file.getBytes();
-            List<String> lines = PdfStatementExtractor.extractLines(pdfBytes);
+            List<String> rawLines = PdfStatementExtractor.extractLines(pdfBytes);
 
+            // Seed the running balance from the opening "BALANCE AS OF" line, so the
+            // very first transaction can use balance-diff instead of guessing from
+            // keywords. The figure is sometimes embedded in that line, but in this
+            // bank's layout it actually renders on the line immediately before it.
             BigDecimal previousBalance = null;
-
-            for (int lineNum = 0; lineNum < lines.size(); lineNum++) {
-                String line = lines.get(lineNum).trim();
-
-                // Skip non-transaction rows (balances, totals, headers)
-                if (isNonTransactionRow(line.toUpperCase())) {
-                    // Try to grab initial balance if it says BALANCE AS OF
-                    if (line.toUpperCase().contains("BALANCE AS OF")) {
-                        Matcher m = Pattern.compile("([0-9,]+\\.\\d{2})").matcher(line);
-                        if (m.find()) {
-                            previousBalance = parseAmountString(m.group(1));
-                        }
+            for (int idx = 0; idx < rawLines.size(); idx++) {
+                String upper = rawLines.get(idx).toUpperCase();
+                if (upper.contains("BALANCE AS OF") || upper.contains("OPENING BALANCE")) {
+                    Matcher ownLine = Pattern.compile("([0-9,]+\\.\\d{2})").matcher(rawLines.get(idx));
+                    if (ownLine.find()) {
+                        previousBalance = parseAmountString(ownLine.group(1));
+                    } else if (idx > 0 && AMOUNT_TOKEN_PATTERN.matcher(rawLines.get(idx - 1)).matches()) {
+                        previousBalance = parseAmountString(rawLines.get(idx - 1));
                     }
+                    break;
+                }
+            }
+
+            // Reassemble [date, date, description..., amount, balance?] cell
+            // sequences into single row strings STATEMENT_LINE_PATTERN can match.
+            List<String> rows = regroupPdfLines(rawLines);
+
+            for (int rowNum = 0; rowNum < rows.size(); rowNum++) {
+                String line = rows.get(rowNum).trim();
+
+                if (isNonTransactionRow(line.toUpperCase())) {
                     continue;
                 }
 
@@ -256,7 +278,7 @@ public class TransactionImportService {
                     boolean isDuplicate = transactionRepository
                             .existsByDateAndDescriptionAndAmountAndCategory(date, description, transactionAmount, category);
                     if (isDuplicate) {
-                        errors.add("Line " + (lineNum + 1) + ": duplicate transaction skipped (" + description + ")");
+                        errors.add("Row " + (rowNum + 1) + ": duplicate transaction skipped (" + description + ")");
                         continue;
                     }
 
@@ -273,7 +295,7 @@ public class TransactionImportService {
                     }
 
                 } catch (Exception parseErr) {
-                    errors.add("Line " + (lineNum + 1) + ": " + parseErr.getMessage());
+                    errors.add("Row " + (rowNum + 1) + ": " + parseErr.getMessage());
                 }
             }
 
@@ -291,6 +313,66 @@ public class TransactionImportService {
                 totalExpense,
                 encounteredCategories.size()
         );
+    }
+
+    /**
+     * The PDF extractor emits one line per text-positioning command, which in
+     * practice means one line per table cell rather than one line per row -
+     * each date, the description, the amount, and the balance are separately
+     * positioned text fragments in the source PDF. This walks the raw lines
+     * and reassembles [date, date, description(1+ lines), amount, balance?]
+     * sequences back into a single combined row string per transaction.
+     */
+    private static List<String> regroupPdfLines(List<String> rawLines) {
+        List<String> rows = new ArrayList<>();
+        int i = 0;
+        while (i < rawLines.size()) {
+            String line = rawLines.get(i);
+            boolean startsRow = DATE_TOKEN_PATTERN.matcher(line).matches()
+                    && i + 1 < rawLines.size()
+                    && DATE_TOKEN_PATTERN.matcher(rawLines.get(i + 1)).matches();
+
+            if (!startsRow) {
+                i++;
+                continue;
+            }
+
+            String date1 = line;
+            String date2 = rawLines.get(i + 1);
+            int j = i + 2;
+
+            StringBuilder description = new StringBuilder();
+            while (j < rawLines.size() && !AMOUNT_TOKEN_PATTERN.matcher(rawLines.get(j)).matches()) {
+                if (description.length() > 0) description.append(' ');
+                description.append(rawLines.get(j));
+                j++;
+            }
+
+            if (j >= rawLines.size() || description.length() == 0) {
+                // No amount followed the description (or no description at all) -
+                // not a real transaction row, advance one line and keep scanning.
+                i++;
+                continue;
+            }
+
+            String amount = rawLines.get(j);
+            j++;
+            String balance = null;
+            if (j < rawLines.size() && AMOUNT_TOKEN_PATTERN.matcher(rawLines.get(j)).matches()) {
+                balance = rawLines.get(j);
+                j++;
+            }
+
+            StringBuilder combined = new StringBuilder();
+            combined.append(date1).append(' ').append(date2).append(' ')
+                    .append(description).append(' ').append(amount);
+            if (balance != null) {
+                combined.append(' ').append(balance);
+            }
+            rows.add(combined.toString());
+            i = j;
+        }
+        return rows;
     }
 
     public static boolean isNonTransactionRow(String upper) {
