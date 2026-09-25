@@ -21,10 +21,15 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-brand">
-          <Logo size={40} showText={false} />
+          <Logo size={46} showText={false} />
           <div>
             <h1>Centsible</h1>
-            <p>Smart finance made simple &bull; Your income & spending at a glance</p>
+            <div className="app-header-statement">
+              <span className="app-header-badge">Institutional Precision</span>
+              <span>Sophisticated clarity for your personal wealth</span>
+              <span style={{ color: 'var(--centsible-text-secondary)', opacity: 0.5 }}>&bull;</span>
+              <span>Income &amp; spending telemetry</span>
+            </div>
           </div>
         </div>
       </header>
