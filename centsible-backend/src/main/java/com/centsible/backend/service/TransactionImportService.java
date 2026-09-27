@@ -93,12 +93,13 @@ public class TransactionImportService {
      */
     public ImportResultDTO importCsv(MultipartFile file) {
         int imported = 0;
+        int duplicateCount = 0;
         int incomeCount = 0;
         int expenseCount = 0;
         BigDecimal totalIncome = BigDecimal.ZERO;
         BigDecimal totalExpense = BigDecimal.ZERO;
         Set<String> encounteredCategories = new HashSet<>();
-        List<String> errors = new ArrayList<>();
+        List<String> parseErrors = new ArrayList<>();
         Map<String, Category> categoryCache = new HashMap<>();
 
         try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
@@ -145,7 +146,7 @@ public class TransactionImportService {
                     boolean isDuplicate = transactionRepository
                             .existsByDateAndDescriptionAndAmountAndCategory(date, description, amount, category);
                     if (isDuplicate) {
-                        errors.add("Row " + record.getRecordNumber() + ": duplicate transaction skipped (" + description + ")");
+                        duplicateCount++;
                         continue;
                     }
 
@@ -163,17 +164,17 @@ public class TransactionImportService {
                     }
 
                 } catch (Exception rowError) {
-                    errors.add("Row " + record.getRecordNumber() + ": " + rowError.getMessage());
+                    parseErrors.add("Row " + record.getRecordNumber() + ": " + rowError.getMessage());
                 }
             }
         } catch (IOException e) {
-            errors.add("Could not read uploaded CSV file: " + e.getMessage());
+            parseErrors.add("Could not read uploaded CSV file: " + e.getMessage());
         }
 
         return new ImportResultDTO(
                 imported,
-                errors.size(),
-                errors,
+                duplicateCount,
+                parseErrors,
                 incomeCount,
                 expenseCount,
                 totalIncome,
@@ -187,12 +188,13 @@ public class TransactionImportService {
      */
     public ImportResultDTO importPdf(MultipartFile file) {
         int imported = 0;
+        int duplicateCount = 0;
         int incomeCount = 0;
         int expenseCount = 0;
         BigDecimal totalIncome = BigDecimal.ZERO;
         BigDecimal totalExpense = BigDecimal.ZERO;
         Set<String> encounteredCategories = new HashSet<>();
-        List<String> errors = new ArrayList<>();
+        List<String> parseErrors = new ArrayList<>();
 
         try {
             byte[] pdfBytes = file.getBytes();
@@ -278,7 +280,7 @@ public class TransactionImportService {
                     boolean isDuplicate = transactionRepository
                             .existsByDateAndDescriptionAndAmountAndCategory(date, description, transactionAmount, category);
                     if (isDuplicate) {
-                        errors.add("Row " + (rowNum + 1) + ": duplicate transaction skipped (" + description + ")");
+                        duplicateCount++;
                         continue;
                     }
 
@@ -295,18 +297,18 @@ public class TransactionImportService {
                     }
 
                 } catch (Exception parseErr) {
-                    errors.add("Row " + (rowNum + 1) + ": " + parseErr.getMessage());
+                    parseErrors.add("Row " + (rowNum + 1) + ": " + parseErr.getMessage());
                 }
             }
 
         } catch (Exception e) {
-            errors.add("Could not process uploaded PDF: " + e.getMessage());
+            parseErrors.add("Could not process uploaded PDF: " + e.getMessage());
         }
 
         return new ImportResultDTO(
                 imported,
-                errors.size(),
-                errors,
+                duplicateCount,
+                parseErrors,
                 incomeCount,
                 expenseCount,
                 totalIncome,
@@ -406,19 +408,31 @@ public class TransactionImportService {
     }
 
     private LocalDate resolveDate(CSVRecord record, Map<String, Integer> headers) {
+        String foundRawDate = null;
         // Look for Effective Date first
         for (String h : headers.keySet()) {
             if (h.equalsIgnoreCase("Effective Date") || h.equalsIgnoreCase("EffectiveDate") || h.equalsIgnoreCase("Value Date")) {
-                LocalDate d = parseFlexibleDate(record.get(h));
-                if (d != null) return d;
+                String val = record.get(h);
+                if (val != null && !val.isBlank()) {
+                    foundRawDate = val.trim();
+                    LocalDate d = parseFlexibleDate(foundRawDate);
+                    if (d != null) return d;
+                }
             }
         }
         // Fallback to Posting Date or standard Date
         for (String h : headers.keySet()) {
             if (h.equalsIgnoreCase("Date") || h.equalsIgnoreCase("Posting Date") || h.equalsIgnoreCase("PostingDate") || h.equalsIgnoreCase("Txn Date")) {
-                LocalDate d = parseFlexibleDate(record.get(h));
-                if (d != null) return d;
+                String val = record.get(h);
+                if (val != null && !val.isBlank()) {
+                    if (foundRawDate == null) foundRawDate = val.trim();
+                    LocalDate d = parseFlexibleDate(val.trim());
+                    if (d != null) return d;
+                }
             }
+        }
+        if (foundRawDate != null) {
+            throw new IllegalArgumentException("invalid date format: " + foundRawDate);
         }
         return null;
     }
@@ -447,6 +461,13 @@ public class TransactionImportService {
             }
         }
 
+        if (paymentStr != null && !paymentStr.isBlank() && parseAmountString(paymentStr) == null) {
+            throw new IllegalArgumentException("invalid payment amount: " + paymentStr);
+        }
+        if (receiptStr != null && !receiptStr.isBlank() && parseAmountString(receiptStr) == null) {
+            throw new IllegalArgumentException("invalid receipt amount: " + receiptStr);
+        }
+
         BigDecimal payment = parseAmountString(paymentStr);
         BigDecimal receipt = parseAmountString(receiptStr);
 
@@ -460,7 +481,14 @@ public class TransactionImportService {
         // 2. Single Amount column
         for (String h : headers.keySet()) {
             if (h.equalsIgnoreCase("Amount") || h.equalsIgnoreCase("Total")) {
-                return parseAmountString(record.get(h));
+                String val = record.get(h);
+                if (val != null && !val.isBlank()) {
+                    BigDecimal parsed = parseAmountString(val);
+                    if (parsed == null) {
+                        throw new IllegalArgumentException("invalid amount: " + val);
+                    }
+                    return parsed;
+                }
             }
         }
 
