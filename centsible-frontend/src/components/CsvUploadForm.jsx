@@ -50,24 +50,53 @@ export default function CsvUploadForm({ onUploadSuccess }) {
         </button>
       </div>
 
-      {status === 'success' && result && (
-        <div className="upload-success-card">
-          <p className="upload-message upload-message--success">
-            Imported <strong>{result.imported}</strong> transaction{result.imported === 1 ? '' : 's'}:{' '}
-            {result.incomeCount} income ({formatLKR(result.totalIncome)}) and{' '}
-            {result.expenseCount} expense{result.expenseCount === 1 ? '' : 's'} ({formatLKR(result.totalExpense)})
-            {result.categoriesCount ? ` across ${result.categoriesCount} categories` : ''}.
-            {result.skipped > 0 ? ` Skipped ${result.skipped} row(s).` : ''}
-          </p>
-          {result.skipped > 0 && result.errors?.length > 0 && (
-            <ul className="upload-errors">
-              {result.errors.map((err, i) => (
-                <li key={i}>{err}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      {status === 'success' && result && (() => {
+        const imported = result.imported ?? 0
+        const duplicateCount = result.duplicateCount ?? 0
+        const parseErrors = result.parseErrors ?? result.errors ?? []
+        const errorCount = parseErrors.length
+
+        const messageClass =
+          errorCount > 0
+            ? imported > 0 || duplicateCount > 0
+              ? 'upload-message--warning'
+              : 'upload-message--error'
+            : 'upload-message--success'
+
+        return (
+          <div className="upload-success-card">
+            <p className={`upload-message ${messageClass}`}>
+              {imported > 0 ? (
+                <>
+                  Imported <strong>{imported}</strong> transaction{imported === 1 ? '' : 's'}:{' '}
+                  {result.incomeCount} income ({formatLKR(result.totalIncome)}) and{' '}
+                  {result.expenseCount} expense{result.expenseCount === 1 ? '' : 's'} ({formatLKR(result.totalExpense)})
+                  {result.categoriesCount ? ` across ${result.categoriesCount} categories` : ''}.
+                  {duplicateCount > 0 ? ` ${duplicateCount} duplicate${duplicateCount === 1 ? '' : 's'} skipped.` : ''}
+                  {errorCount > 0 ? ` ${errorCount} row${errorCount === 1 ? '' : 's'} had errors — see below.` : ''}
+                </>
+              ) : duplicateCount > 0 && errorCount === 0 ? (
+                `${duplicateCount} row${duplicateCount === 1 ? '' : 's'} skipped as duplicate${duplicateCount === 1 ? '' : 's'} (already imported).`
+              ) : duplicateCount > 0 ? (
+                `0 new transactions imported. ${duplicateCount} row${duplicateCount === 1 ? '' : 's'} skipped as duplicate${duplicateCount === 1 ? '' : 's'}. ${errorCount} row${errorCount === 1 ? '' : 's'} had errors — see below.`
+              ) : errorCount > 0 ? (
+                `0 transactions imported. ${errorCount} row${errorCount === 1 ? '' : 's'} had errors — see below.`
+              ) : (
+                'No transactions found to import.'
+              )}
+            </p>
+            {errorCount > 0 && (
+              <div className="upload-errors-container">
+                <ul className="upload-errors">
+                  {parseErrors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {status === 'error' && (
         <p className="upload-message upload-message--error">
