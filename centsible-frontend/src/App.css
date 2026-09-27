@@ -555,6 +555,17 @@
   line-height: 1.45;
 }
 
+.upload-message--warning {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 0.65rem 0.95rem;
+  border-radius: 8px;
+  display: inline-block;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
 .upload-message--error {
   color: var(--centsible-error);
   background: var(--centsible-error-bg);
@@ -562,6 +573,10 @@
   border-radius: 8px;
   display: inline-block;
   margin-top: 1rem;
+}
+
+.upload-errors-container {
+  margin-top: 0.5rem;
 }
 
 .upload-errors {
