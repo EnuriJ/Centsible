@@ -63,12 +63,12 @@ public class AnalyticsAndImportTest {
     @Test
     public void testCsvWithPaymentsAndReceiptsAndEffectiveDate() {
         String csvContent = "Posting Date,Effective Date,Particulars,Payments,Receipts,Balance\n" +
-                "BALANCE AS OF 31/07/26,,,116,421.01\n" +
-                "04 Aug 2026,01 Aug 2026,PURCHASE BARISTA NAWAM MAWAT,2,629.00,,113,792.01\n" +
-                "11 Aug 2026,10 Aug 2026,PURCHASE PICKME RIDE,792.87,,112,999.14\n" +
-                "31 Aug 2026,31 Aug 2026,INTEREST,,207.71,97,941.08\n" +
-                "31 Aug 2026,31 Aug 2026,ADVANCE INCOME TAX,20.77,,97,920.31\n" +
-                "CLOSING BALANCE AS OF 31/08/26,,,,97,920.31\n" +
+                "BALANCE AS OF 31/07/26,,,\"116,421.01\"\n" +
+                "04 Aug 2026,01 Aug 2026,PURCHASE BARISTA NAWAM MAWAT,\"2,629.00\",,\"113,792.01\"\n" +
+                "11 Aug 2026,10 Aug 2026,PURCHASE PICKME RIDE,792.87,,\"112,999.14\"\n" +
+                "31 Aug 2026,31 Aug 2026,INTEREST,,207.71,\"97,941.08\"\n" +
+                "31 Aug 2026,31 Aug 2026,ADVANCE INCOME TAX,20.77,,\"97,920.31\"\n" +
+                "CLOSING BALANCE AS OF 31/08/26,,,,\"97,920.31\"\n" +
                 "TOTAL DEPOSITS 1 ITEMS,,,207.71\n";
 
         MockMultipartFile file = new MockMultipartFile(
@@ -128,5 +128,52 @@ public class AnalyticsAndImportTest {
         assertNotNull(summary);
         assertNotNull(summary.getNarrative());
         assertTrue(summary.getNarrative().contains("Rs."), "Narrative should format currency as Rs. in LKR");
+    }
+
+    @Test
+    public void testDuplicateAndParseErrorSeparation() {
+        String csvContent = "Posting Date,Effective Date,Particulars,Payments,Receipts,Balance\n" +
+                "15 Sep 2026,15 Sep 2026,SUPERMARKET ONE,1,500.00,,50,000.00\n" +
+                "16 Sep 2026,16 Sep 2026,SALARY CREDIT,,75,000.00,125,000.00\n" +
+                "17 Sep 2026,17 Sep 2026,COFFEE SHOP,850.00,,124,150.00\n";
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "test_statement.csv",
+                "text/csv",
+                csvContent.getBytes(StandardCharsets.UTF_8)
+        );
+
+        // First pass: imports all new transactions
+        ImportResultDTO firstPass = transactionImportService.importCsv(file);
+        int initialImported = firstPass.getImported();
+        assertTrue(initialImported > 0, "First pass should import transactions");
+        assertEquals(0, firstPass.getDuplicateCount(), "First pass should have 0 duplicates");
+        assertTrue(firstPass.getParseErrors().isEmpty(), "First pass should have no parse errors");
+
+        // Second pass: re-importing the exact same file
+        ImportResultDTO secondPass = transactionImportService.importCsv(file);
+        assertEquals(0, secondPass.getImported(), "Second pass should import 0 transactions");
+        assertEquals(initialImported, secondPass.getDuplicateCount(), "Second pass duplicateCount must dynamically match first pass imported count");
+        assertTrue(secondPass.getParseErrors().isEmpty(), "Second pass should have no parse errors");
+
+        // Third pass: file containing a duplicate row, a brand new row, and a malformed row that causes a parse error
+        String mixedContent = "Posting Date,Effective Date,Particulars,Payments,Receipts,Balance\n" +
+                "15 Sep 2026,15 Sep 2026,SUPERMARKET ONE,1,500.00,,50,000.00\n" +
+                "18 Sep 2026,18 Sep 2026,NEW BOOKSTORE,2,200.00,,121,950.00\n" +
+                "19 Sep 2026,19 Sep 2026,BROKEN ROW,NOT_AN_AMOUNT,,121,950.00\n";
+
+        MockMultipartFile mixedFile = new MockMultipartFile(
+                "file",
+                "mixed_statement.csv",
+                "text/csv",
+                mixedContent.getBytes(StandardCharsets.UTF_8)
+        );
+
+        ImportResultDTO mixedResult = transactionImportService.importCsv(mixedFile);
+        assertEquals(1, mixedResult.getImported(), "Should import the 1 new transaction");
+        assertEquals(1, mixedResult.getDuplicateCount(), "Should detect the 1 duplicate transaction");
+        assertEquals(1, mixedResult.getParseErrors().size(), "Should record the 1 row parse error");
+        assertTrue(mixedResult.getParseErrors().get(0).contains("Row 3"), "Parse error should mention Row 3");
     }
 }
