@@ -658,3 +658,297 @@
 .filters-reset:hover {
   color: var(--centsible-primary);
 }
+
+/* Header Navigation & User Profile */
+.app-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.app-user-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--centsible-surface);
+  border: 1px solid var(--centsible-border);
+  padding: 0.35rem 0.85rem 0.35rem 0.45rem;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.user-avatar-initial {
+  width: 32px;
+  height: 32px;
+  background: var(--centsible-primary);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-brand);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.user-display-name {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--centsible-dark);
+}
+
+.user-email-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--centsible-text-secondary);
+}
+
+.btn-signout {
+  font-family: var(--font-ui);
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--centsible-text-secondary);
+  background: transparent;
+  border: 1px solid var(--centsible-border);
+  padding: 0.5rem 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-signout:hover {
+  color: var(--centsible-error);
+  border-color: rgba(185, 28, 28, 0.3);
+  background: var(--centsible-error-bg);
+}
+
+/* Auth View & Form */
+.auth-container {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--centsible-surface);
+  border: 1px solid var(--centsible-border-prestige);
+  border-radius: var(--centsible-radius);
+  padding: 2.5rem 2.25rem;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+}
+
+.auth-brand-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-brand-center h2 {
+  font-family: var(--font-brand);
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--centsible-dark);
+  margin: 0.75rem 0 0.35rem;
+  letter-spacing: -0.02em;
+}
+
+.auth-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: var(--centsible-text-secondary);
+  margin-top: 0.25rem;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  background: var(--centsible-bg-page);
+  padding: 0.25rem;
+  border-radius: 10px;
+  margin-bottom: 1.75rem;
+  border: 1px solid var(--centsible-border);
+}
+
+.auth-tab {
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--centsible-text-secondary);
+  padding: 0.6rem 0.5rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-tab--active {
+  background: var(--centsible-surface);
+  color: var(--centsible-dark);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.auth-error-banner {
+  background: var(--centsible-error-bg);
+  border: 1px solid rgba(185, 28, 28, 0.25);
+  color: var(--centsible-error);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.825rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.auth-field label {
+  font-family: var(--font-ui);
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--centsible-text-primary);
+}
+
+.auth-field input {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--centsible-border);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.925rem;
+  color: var(--centsible-dark);
+  background: var(--centsible-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--centsible-primary);
+  box-shadow: 0 0 0 3px rgba(13, 110, 81, 0.15);
+}
+
+.auth-btn-primary {
+  margin-top: 0.5rem;
+  background: var(--centsible-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.auth-btn-primary:hover:not(:disabled) {
+  background: var(--centsible-primary-hover);
+}
+
+.auth-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.75rem 0 1rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--centsible-border);
+}
+
+.auth-divider span {
+  padding: 0 0.85rem;
+  font-family: var(--font-kpi-label);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--centsible-text-secondary);
+}
+
+.auth-btn-demo {
+  width: 100%;
+  background: var(--centsible-mint-bg);
+  color: var(--centsible-primary);
+  border: 1px solid var(--centsible-mint-badge);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-btn-demo:hover:not(:disabled) {
+  background: #d4f3ea;
+  border-color: #aae0d1;
+}
+
+.auth-loading-screen {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  font-family: var(--font-ui);
+  color: var(--centsible-text-secondary);
+  font-size: 0.95rem;
+}
+
+.auth-loading-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid rgba(13, 110, 81, 0.15);
+  border-top-color: var(--centsible-primary);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
