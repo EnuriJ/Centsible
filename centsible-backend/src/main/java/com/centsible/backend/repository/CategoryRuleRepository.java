@@ -8,10 +8,10 @@ import java.util.Optional;
 
 public interface CategoryRuleRepository extends JpaRepository<CategoryRule, Long> {
 
-    List<CategoryRule> findAllByOrderByPriorityDesc();
+    List<CategoryRule> findByUserIdOrderByPriorityDesc(Long userId);
 
-    Optional<CategoryRule> findByKeyword(String keyword);
+    Optional<CategoryRule> findByUserIdAndKeyword(Long userId, String keyword);
 
-    boolean existsByKeyword(String keyword);
+    boolean existsByUserIdAndKeyword(Long userId, String keyword);
 
 }
