@@ -3,6 +3,7 @@ package com.centsible.backend.service;
 import com.centsible.backend.dto.ImportResultDTO;
 import com.centsible.backend.model.Category;
 import com.centsible.backend.model.Transaction;
+import com.centsible.backend.model.User;
 import com.centsible.backend.repository.CategoryRepository;
 import com.centsible.backend.repository.TransactionRepository;
 import org.apache.commons.csv.CSVFormat;
@@ -11,7 +12,6 @@ import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,7 +48,6 @@ public class TransactionImportService {
     };
 
     // Regex for matching lines in bank PDF statements like Commercial Bank of Ceylon:
-    // e.g. "04 Aug 2026 01 Aug 2026 PURCHASE BARISTA NAWAM MAWAT 2,629.00 113,792.01"
     private static final Pattern STATEMENT_LINE_PATTERN = Pattern.compile(
             "^(\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4}|\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+" + // Posting Date
             "(\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4}|\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+" + // Effective Date
@@ -57,11 +55,6 @@ public class TransactionImportService {
             "([0-9,]+\\.\\d{2})(?:\\s+([0-9,]+\\.\\d{2}))?$"                       // Amount and optional Balance
     );
 
-    // The extractor emits one line per PDF text-positioning command, which in
-    // practice means one line per table CELL rather than one line per table
-    // ROW - each date, the description, the amount, and the balance are all
-    // separately-positioned text fragments. These match a single cell's worth
-    // of content, used to reassemble cells back into one row per transaction.
     private static final Pattern DATE_TOKEN_PATTERN = Pattern.compile(
             "^(?:\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4}|\\d{1,2}/\\d{1,2}/\\d{2,4})$"
     );
@@ -76,14 +69,14 @@ public class TransactionImportService {
     }
 
     /**
-     * Ingests bank statements from either CSV or PDF files.
+     * Ingests bank statements from either CSV or PDF files for a specific user.
      */
-    public ImportResultDTO importStatement(MultipartFile file) {
+    public ImportResultDTO importStatement(MultipartFile file, User user) {
         String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
         if (filename.endsWith(".pdf") || "application/pdf".equalsIgnoreCase(file.getContentType())) {
-            return importPdf(file);
+            return importPdf(file, user);
         } else {
-            return importCsv(file);
+            return importCsv(file, user);
         }
     }
 
@@ -91,7 +84,7 @@ public class TransactionImportService {
      * CSV Ingestion handling both simple 4-column CSVs and full bank exports
      * with separate Payments and Receipts columns, Effective Dates, and formatted numbers.
      */
-    public ImportResultDTO importCsv(MultipartFile file) {
+    public ImportResultDTO importCsv(MultipartFile file, User user) {
         int imported = 0;
         int duplicateCount = 0;
         int incomeCount = 0;
@@ -139,19 +132,19 @@ public class TransactionImportService {
                         continue;
                     }
 
-                    // 4. Resolve Category (explicit category or auto-categorize with rules engine)
-                    Category category = resolveCategory(record, headerMap, description, categoryCache);
+                    // 4. Resolve Category (explicit category or auto-categorize with rules engine for this user)
+                    Category category = resolveCategory(record, headerMap, description, categoryCache, user);
 
-                    // 5. Deduplication check
+                    // 5. Deduplication check scoped to user
                     boolean isDuplicate = transactionRepository
-                            .existsByDateAndDescriptionAndAmountAndCategory(date, description, amount, category);
+                            .existsByUserIdAndDateAndDescriptionAndAmountAndCategory(user.getId(), date, description, amount, category);
                     if (isDuplicate) {
                         duplicateCount++;
                         continue;
                     }
 
-                    // 6. Persist
-                    transactionRepository.save(new Transaction(date, description, amount, category));
+                    // 6. Persist with user association
+                    transactionRepository.save(new Transaction(date, description, amount, category, user));
                     imported++;
                     encounteredCategories.add(category.getName());
 
@@ -184,9 +177,9 @@ public class TransactionImportService {
     }
 
     /**
-     * Ingests transactions directly from a PDF bank statement (e.g. Commercial Bank of Ceylon).
+     * Ingests transactions directly from a PDF bank statement (e.g. Commercial Bank of Ceylon) for a specific user.
      */
-    public ImportResultDTO importPdf(MultipartFile file) {
+    public ImportResultDTO importPdf(MultipartFile file, User user) {
         int imported = 0;
         int duplicateCount = 0;
         int incomeCount = 0;
@@ -200,10 +193,6 @@ public class TransactionImportService {
             byte[] pdfBytes = file.getBytes();
             List<String> rawLines = PdfStatementExtractor.extractLines(pdfBytes);
 
-            // Seed the running balance from the opening "BALANCE AS OF" line, so the
-            // very first transaction can use balance-diff instead of guessing from
-            // keywords. The figure is sometimes embedded in that line, but in this
-            // bank's layout it actually renders on the line immediately before it.
             BigDecimal previousBalance = null;
             for (int idx = 0; idx < rawLines.size(); idx++) {
                 String upper = rawLines.get(idx).toUpperCase();
@@ -218,8 +207,6 @@ public class TransactionImportService {
                 }
             }
 
-            // Reassemble [date, date, description..., amount, balance?] cell
-            // sequences into single row strings STATEMENT_LINE_PATTERN can match.
             List<String> rows = regroupPdfLines(rawLines);
 
             for (int rowNum = 0; rowNum < rows.size(); rowNum++) {
@@ -252,7 +239,6 @@ public class TransactionImportService {
                     BigDecimal currentBalance = null;
 
                     if (secondNumStr != null) {
-                        // firstNum is transaction amount, secondNum is Balance
                         BigDecimal parsedVal = parseAmountString(firstNumStr);
                         currentBalance = parseAmountString(secondNumStr);
 
@@ -260,7 +246,6 @@ public class TransactionImportService {
                             BigDecimal balanceDiff = currentBalance.subtract(previousBalance);
                             transactionAmount = balanceDiff;
                         } else {
-                            // If previous balance wasn't tracked, infer from description
                             if (isIncomeDescription(description)) {
                                 transactionAmount = parsedVal;
                             } else {
@@ -273,18 +258,18 @@ public class TransactionImportService {
                         transactionAmount = isIncomeDescription(description) ? parsedVal : parsedVal.negate();
                     }
 
-                    // Auto-categorize
-                    Category category = categorizationService.categorize(description);
+                    // Auto-categorize for this user
+                    Category category = categorizationService.categorize(description, user);
 
-                    // Deduplication check
+                    // Deduplication check scoped to user
                     boolean isDuplicate = transactionRepository
-                            .existsByDateAndDescriptionAndAmountAndCategory(date, description, transactionAmount, category);
+                            .existsByUserIdAndDateAndDescriptionAndAmountAndCategory(user.getId(), date, description, transactionAmount, category);
                     if (isDuplicate) {
                         duplicateCount++;
                         continue;
                     }
 
-                    transactionRepository.save(new Transaction(date, description, transactionAmount, category));
+                    transactionRepository.save(new Transaction(date, description, transactionAmount, category, user));
                     imported++;
                     encounteredCategories.add(category.getName());
 
@@ -317,14 +302,6 @@ public class TransactionImportService {
         );
     }
 
-    /**
-     * The PDF extractor emits one line per text-positioning command, which in
-     * practice means one line per table cell rather than one line per row -
-     * each date, the description, the amount, and the balance are separately
-     * positioned text fragments in the source PDF. This walks the raw lines
-     * and reassembles [date, date, description(1+ lines), amount, balance?]
-     * sequences back into a single combined row string per transaction.
-     */
     private static List<String> regroupPdfLines(List<String> rawLines) {
         List<String> rows = new ArrayList<>();
         int i = 0;
@@ -351,8 +328,6 @@ public class TransactionImportService {
             }
 
             if (j >= rawLines.size() || description.length() == 0) {
-                // No amount followed the description (or no description at all) -
-                // not a real transaction row, advance one line and keep scanning.
                 i++;
                 continue;
             }
@@ -409,7 +384,6 @@ public class TransactionImportService {
 
     private LocalDate resolveDate(CSVRecord record, Map<String, Integer> headers) {
         String foundRawDate = null;
-        // Look for Effective Date first
         for (String h : headers.keySet()) {
             if (h.equalsIgnoreCase("Effective Date") || h.equalsIgnoreCase("EffectiveDate") || h.equalsIgnoreCase("Value Date")) {
                 String val = record.get(h);
@@ -420,7 +394,6 @@ public class TransactionImportService {
                 }
             }
         }
-        // Fallback to Posting Date or standard Date
         for (String h : headers.keySet()) {
             if (h.equalsIgnoreCase("Date") || h.equalsIgnoreCase("Posting Date") || h.equalsIgnoreCase("PostingDate") || h.equalsIgnoreCase("Txn Date")) {
                 String val = record.get(h);
@@ -448,7 +421,6 @@ public class TransactionImportService {
     }
 
     private BigDecimal resolveAmount(CSVRecord record, Map<String, Integer> headers) {
-        // 1. Separate Payments and Receipts
         String paymentStr = null;
         String receiptStr = null;
 
@@ -472,13 +444,12 @@ public class TransactionImportService {
         BigDecimal receipt = parseAmountString(receiptStr);
 
         if (receipt != null && receipt.compareTo(BigDecimal.ZERO) > 0) {
-            return receipt; // positive (income)
+            return receipt;
         }
         if (payment != null && payment.compareTo(BigDecimal.ZERO) > 0) {
-            return payment.negate(); // negative (expense)
+            return payment.negate();
         }
 
-        // 2. Single Amount column
         for (String h : headers.keySet()) {
             if (h.equalsIgnoreCase("Amount") || h.equalsIgnoreCase("Total")) {
                 String val = record.get(h);
@@ -495,22 +466,16 @@ public class TransactionImportService {
         return null;
     }
 
-    private Category resolveCategory(CSVRecord record, Map<String, Integer> headers, String description, Map<String, Category> cache) {
-        // If the CSV provides a category column with value, use it
+    private Category resolveCategory(CSVRecord record, Map<String, Integer> headers, String description, Map<String, Category> cache, User user) {
         for (String h : headers.keySet()) {
             if (h.equalsIgnoreCase("Category")) {
                 String catStr = record.get(h).trim();
                 if (!catStr.isEmpty()) {
-                    return cache.computeIfAbsent(catStr, name -> {
-                        Category existing = categoryRepository.findByName(name);
-                        return existing != null ? existing : categoryRepository.save(new Category(name));
-                    });
+                    return cache.computeIfAbsent(catStr, name -> categorizationService.getOrCreateCategory(name, user));
                 }
             }
         }
-
-        // Otherwise, run through keyword auto-categorization
-        return categorizationService.categorize(description);
+        return categorizationService.categorize(description, user);
     }
 
     public static BigDecimal parseAmountString(String s) {

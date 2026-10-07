@@ -5,13 +5,15 @@ import com.centsible.backend.dto.TransactionDTO;
 import com.centsible.backend.dto.UpdateCategoryRequestDTO;
 import com.centsible.backend.model.Category;
 import com.centsible.backend.model.Transaction;
+import com.centsible.backend.model.User;
 import com.centsible.backend.repository.CategoryRepository;
 import com.centsible.backend.repository.TransactionRepository;
+import com.centsible.backend.security.CustomUserDetails;
 import com.centsible.backend.service.CategorizationService;
 import com.centsible.backend.service.TransactionImportService;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,7 +29,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/transactions")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 public class TransactionController {
 
     private final TransactionImportService transactionImportService;
@@ -45,16 +46,18 @@ public class TransactionController {
         this.categorizationService = categorizationService;
     }
 
-    // POST /api/transactions/upload (supports CSV and PDF statements)
+    // POST /api/transactions/upload (supports CSV and PDF statements scoped to current user)
     @PostMapping("/upload")
-    public ImportResultDTO upload(@RequestParam("file") MultipartFile file) {
-        return transactionImportService.importStatement(file);
+    public ImportResultDTO upload(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return transactionImportService.importStatement(file, userDetails.getUser());
     }
 
-    // GET /api/transactions (returns all transactions ordered by date descending)
+    // GET /api/transactions (returns all transactions for current user ordered by date descending)
     @GetMapping
-    public List<TransactionDTO> listTransactions() {
-        return transactionRepository.findAll(Sort.by(Sort.Direction.DESC, "date", "id")).stream()
+    public List<TransactionDTO> listTransactions(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return transactionRepository.findByUserId(userDetails.getUser().getId(), Sort.by(Sort.Direction.DESC, "date", "id")).stream()
                 .map(t -> new TransactionDTO(
                         t.getId(),
                         t.getDate(),
@@ -65,24 +68,25 @@ public class TransactionController {
                 .collect(Collectors.toList());
     }
 
-    // PUT /api/transactions/{id}/category
+    // PUT /api/transactions/{id}/category (updates category and optionally learns rule for current user)
     @PutMapping("/{id}/category")
     public ResponseEntity<TransactionDTO> updateCategory(
             @PathVariable Long id,
-            @RequestBody UpdateCategoryRequestDTO request) {
+            @RequestBody UpdateCategoryRequestDTO request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        return transactionRepository.findById(id).map(t -> {
-            Category category = categorizationService.getOrCreateCategory(request.getCategoryName());
+        User user = userDetails.getUser();
+        return transactionRepository.findByIdAndUserId(id, user.getId()).map(t -> {
+            Category category = categorizationService.getOrCreateCategory(request.getCategoryName(), user);
             t.setCategory(category);
             Transaction saved = transactionRepository.save(t);
 
             if (request.isRememberRule()) {
                 String keyword = request.getKeyword();
                 if (keyword == null || keyword.isBlank()) {
-                    // Extract a sensible keyword from description (e.g. first 2 words)
                     keyword = extractDefaultKeyword(t.getDescription());
                 }
-                categorizationService.learnRule(keyword, request.getCategoryName(), true);
+                categorizationService.learnRule(keyword, request.getCategoryName(), true, user);
             }
 
             return ResponseEntity.ok(new TransactionDTO(
@@ -91,7 +95,7 @@ public class TransactionController {
                     saved.getDescription(),
                     saved.getAmount(),
                     saved.getCategory() != null ? saved.getCategory().getName() : "Uncategorized"
-            ));
+                ));
         }).orElse(ResponseEntity.notFound().build());
     }
 

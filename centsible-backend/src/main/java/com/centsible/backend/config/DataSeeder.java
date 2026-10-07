@@ -1,91 +1,86 @@
 package com.centsible.backend.config;
 
 import com.centsible.backend.model.Category;
-import com.centsible.backend.model.CategoryRule;
+import com.centsible.backend.model.Transaction;
+import com.centsible.backend.model.User;
 import com.centsible.backend.repository.CategoryRepository;
-import com.centsible.backend.repository.CategoryRuleRepository;
+import com.centsible.backend.repository.TransactionRepository;
+import com.centsible.backend.repository.UserRepository;
+import com.centsible.backend.service.CategorizationService;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
 
 /**
- * Seeds default categories and keyword auto-categorization rules.
- * No longer seeds sample transactions - real data comes from CSV/PDF import.
+ * Seeds default demo user with synthetic showcase transactions and default categories/rules.
+ * Does not touch or reassign any existing data.
  */
 @Component
 public class DataSeeder implements CommandLineRunner {
 
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final CategorizationService categorizationService;
     private final CategoryRepository categoryRepository;
-    private final CategoryRuleRepository categoryRuleRepository;
+    private final TransactionRepository transactionRepository;
 
-    public DataSeeder(CategoryRepository categoryRepository,
-                      CategoryRuleRepository categoryRuleRepository) {
+    public DataSeeder(UserRepository userRepository,
+                      PasswordEncoder passwordEncoder,
+                      CategorizationService categorizationService,
+                      CategoryRepository categoryRepository,
+                      TransactionRepository transactionRepository) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.categorizationService = categorizationService;
         this.categoryRepository = categoryRepository;
-        this.categoryRuleRepository = categoryRuleRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     @Override
     public void run(String... args) {
-        // Ensure standard categories exist
-        List<String> categoryNames = List.of(
-                "Transport", "Dining Out", "Groceries", "Rent",
-                "Subscriptions", "Utilities", "Entertainment", "Shopping",
-                "Income", "Bank Interest", "Bank Taxes & Fees", "Uncategorized"
-        );
+        // Provision demo user if not present
+        User demoUser = userRepository.findByEmail("demo@centsible.com")
+                .orElseGet(() -> userRepository.save(
+                        new User("demo@centsible.com", passwordEncoder.encode("Password123!"), "Demo Portfolio")
+                ));
 
-        Map<String, Category> categories = new HashMap<>();
-        for (String name : categoryNames) {
-            Category cat = categoryRepository.findByName(name);
-            if (cat == null) {
-                cat = categoryRepository.save(new Category(name));
-            }
-            categories.put(name, cat);
+        // Seed default categories and categorization rules for demo user
+        categorizationService.seedDefaultCategoriesAndRules(demoUser);
+
+        // Seed synthetic showcase transactions strictly for demo user if they have none
+        if (transactionRepository.countByUserId(demoUser.getId()) == 0) {
+            seedSyntheticDemoTransactions(demoUser);
         }
+    }
 
-        // Seed default auto-categorization rules if empty
-        if (categoryRuleRepository.count() == 0) {
-            Map<String, String> defaultRules = Map.ofEntries(
-                    Map.entry("PICKME", "Transport"),
-                    Map.entry("UBER", "Transport"),
-                    Map.entry("BARISTA", "Dining Out"),
-                    Map.entry("SATHSUKI", "Dining Out"),
-                    Map.entry("RESTAURANT", "Dining Out"),
-                    Map.entry("CAFE", "Dining Out"),
-                    Map.entry("CHIPOTLE", "Dining Out"),
-                    Map.entry("DINER", "Dining Out"),
-                    Map.entry("KEELLS", "Groceries"),
-                    Map.entry("CARGILLS", "Groceries"),
-                    Map.entry("SUPERMARKET", "Groceries"),
-                    Map.entry("WHOLE FOODS", "Groceries"),
-                    Map.entry("TRADER JOE", "Groceries"),
-                    Map.entry("COSTCO", "Groceries"),
-                    Map.entry("NETFLIX", "Subscriptions"),
-                    Map.entry("SPOTIFY", "Subscriptions"),
-                    Map.entry("ELECTRIC", "Utilities"),
-                    Map.entry("WATER", "Utilities"),
-                    Map.entry("CEB", "Utilities"),
-                    Map.entry("NWSDB", "Utilities"),
-                    Map.entry("DIALOG", "Utilities"),
-                    Map.entry("SLT", "Utilities"),
-                    Map.entry("INTEREST", "Bank Interest"),
-                    Map.entry("ADVANCE INCOME TAX", "Bank Taxes & Fees"),
-                    Map.entry("TAX", "Bank Taxes & Fees"),
-                    Map.entry("PAYCHECK", "Income"),
-                    Map.entry("SALARY", "Income"),
-                    Map.entry("FREELANCE", "Income"),
-                    Map.entry("RENT", "Rent")
-            );
+    private void seedSyntheticDemoTransactions(User user) {
+        LocalDate today = LocalDate.now();
 
-            for (Map.Entry<String, String> entry : defaultRules.entrySet()) {
-                String keyword = entry.getKey();
-                Category cat = categories.get(entry.getValue());
-                if (cat != null) {
-                    categoryRuleRepository.save(new CategoryRule(keyword, cat, keyword.length()));
-                }
-            }
-        }
+        createTx(user, today.minusDays(26), "MONTHLY SALARY CREDIT - TECH CORP", new BigDecimal("350000.00"), "Income");
+        createTx(user, today.minusDays(14), "FREELANCE CONSULTING INVOICE #104", new BigDecimal("85000.00"), "Income");
+        createTx(user, today.minusDays(2), "SAVINGS ACCOUNT INTEREST", new BigDecimal("1250.00"), "Bank Interest");
+
+        createTx(user, today.minusDays(25), "APARTMENT RENT TRANSFER", new BigDecimal("-95000.00"), "Rent");
+        createTx(user, today.minusDays(21), "CARGILLS FOOD CITY COLOMBO", new BigDecimal("-14250.00"), "Groceries");
+        createTx(user, today.minusDays(10), "KEELLS SUPERMARKET THIMBIRIGASYAYA", new BigDecimal("-18900.00"), "Groceries");
+        createTx(user, today.minusDays(19), "CEB ELECTRICITY BILL PAYMENT", new BigDecimal("-12800.00"), "Utilities");
+        createTx(user, today.minusDays(16), "DIALOG BROADBAND & MOBILE", new BigDecimal("-6500.00"), "Utilities");
+        createTx(user, today.minusDays(15), "BARISTA COFFEE NAWAM MAWATHA", new BigDecimal("-2450.00"), "Dining Out");
+        createTx(user, today.minusDays(8), "RESTAURANT THE GALLERY CAFE", new BigDecimal("-16500.00"), "Dining Out");
+        createTx(user, today.minusDays(11), "PICKME RIDE", new BigDecimal("-1250.00"), "Transport");
+        createTx(user, today.minusDays(5), "UBER TRIP COLOMBO", new BigDecimal("-1850.00"), "Transport");
+        createTx(user, today.minusDays(17), "NETFLIX SUBSCRIPTION", new BigDecimal("-3900.00"), "Subscriptions");
+        createTx(user, today.minusDays(9), "SPOTIFY PREMIUM", new BigDecimal("-1499.00"), "Subscriptions");
+        createTx(user, today.minusDays(2), "ADVANCE INCOME TAX ON INTEREST", new BigDecimal("-125.00"), "Bank Taxes & Fees");
+    }
+
+    private void createTx(User user, LocalDate date, String description, BigDecimal amount, String categoryName) {
+        Category category = categoryRepository.findByUserIdAndName(user.getId(), categoryName)
+                .orElseGet(() -> categoryRepository.save(new Category(categoryName, user)));
+        transactionRepository.save(new Transaction(date, description, amount, category, user));
     }
 }
