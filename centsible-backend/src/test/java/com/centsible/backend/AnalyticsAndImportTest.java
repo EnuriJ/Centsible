@@ -1,17 +1,18 @@
 package com.centsible.backend;
 
-import com.centsible.backend.dto.CategoryIncomeDTO;
 import com.centsible.backend.dto.FinancialSummaryDTO;
 import com.centsible.backend.dto.ImportResultDTO;
-import com.centsible.backend.dto.MonthlyCashFlowDTO;
 import com.centsible.backend.model.Category;
 import com.centsible.backend.model.CategoryRule;
 import com.centsible.backend.model.Transaction;
+import com.centsible.backend.model.User;
 import com.centsible.backend.repository.CategoryRepository;
 import com.centsible.backend.repository.TransactionRepository;
+import com.centsible.backend.repository.UserRepository;
 import com.centsible.backend.service.AnalyticsService;
 import com.centsible.backend.service.CategorizationService;
 import com.centsible.backend.service.TransactionImportService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,21 +43,33 @@ public class AnalyticsAndImportTest {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private User testUser;
+
+    @BeforeEach
+    public void setUp() {
+        testUser = userRepository.findByEmail("test@centsible.local")
+                .orElseGet(() -> userRepository.save(new User("test@centsible.local", "hashedpassword", "Test User")));
+        categorizationService.seedDefaultCategoriesAndRules(testUser);
+    }
+
     @Test
     public void testAutoCategorization() {
-        Category baristaCat = categorizationService.categorize("PURCHASE BARISTA NAWAM MAWAT");
+        Category baristaCat = categorizationService.categorize("PURCHASE BARISTA NAWAM MAWAT", testUser);
         assertEquals("Dining Out", baristaCat.getName());
 
-        Category pickMeCat = categorizationService.categorize("PURCHASE PICKME RIDE");
+        Category pickMeCat = categorizationService.categorize("PURCHASE PICKME RIDE", testUser);
         assertEquals("Transport", pickMeCat.getName());
 
-        Category interestCat = categorizationService.categorize("INTEREST");
+        Category interestCat = categorizationService.categorize("INTEREST", testUser);
         assertEquals("Bank Interest", interestCat.getName());
 
-        Category taxCat = categorizationService.categorize("ADVANCE INCOME TAX");
+        Category taxCat = categorizationService.categorize("ADVANCE INCOME TAX", testUser);
         assertEquals("Bank Taxes & Fees", taxCat.getName());
 
-        Category unknownCat = categorizationService.categorize("RANDOM UNKNOWN STORE 9999");
+        Category unknownCat = categorizationService.categorize("RANDOM UNKNOWN STORE 9999", testUser);
         assertEquals("Uncategorized", unknownCat.getName());
     }
 
@@ -78,15 +91,13 @@ public class AnalyticsAndImportTest {
                 csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
-        ImportResultDTO result = transactionImportService.importCsv(file);
+        ImportResultDTO result = transactionImportService.importCsv(file, testUser);
 
-        // 4 real transactions (Barista, Pickme, Interest, Tax), balance & totals rows ignored
         assertTrue(result.getImported() >= 4, "Should import 4 real transactions");
         assertTrue(result.getIncomeCount() >= 1, "Should detect 1 receipt/income (Interest)");
         assertTrue(result.getExpenseCount() >= 3, "Should detect 3 payments/expenses");
 
-        // Verify Effective Date was used: Barista effective date is 2026-08-01 (not posting date 2026-08-04)
-        List<Transaction> baristaTx = transactionRepository.findAll().stream()
+        List<Transaction> baristaTx = transactionRepository.findByUserId(testUser.getId()).stream()
                 .filter(t -> t.getDescription().contains("BARISTA"))
                 .toList();
         assertFalse(baristaTx.isEmpty());
@@ -97,24 +108,20 @@ public class AnalyticsAndImportTest {
 
     @Test
     public void testRuleLearningAndBackfill() {
-        // Create an uncategorized transaction
-        Category uncategorized = categorizationService.getOrCreateCategory("Uncategorized");
+        Category uncategorized = categorizationService.getOrCreateCategory("Uncategorized", testUser);
         Transaction t1 = transactionRepository.save(
-                new Transaction(LocalDate.of(2026, 8, 20), "SPAR SUPERMARKET THALAHENA", new BigDecimal("-4500.00"), uncategorized)
+                new Transaction(LocalDate.of(2026, 8, 20), "SPAR SUPERMARKET THALAHENA", new BigDecimal("-4500.00"), uncategorized, testUser)
         );
 
-        // Learn rule: "SPAR" -> "Groceries"
-        CategoryRule rule = categorizationService.learnRule("SPAR", "Groceries", true);
+        CategoryRule rule = categorizationService.learnRule("SPAR", "Groceries", true, testUser);
         assertNotNull(rule);
         assertEquals("SPAR", rule.getKeyword());
         assertEquals("Groceries", rule.getCategory().getName());
 
-        // Verify transaction was backfilled
-        Transaction updated = transactionRepository.findById(t1.getId()).orElseThrow();
+        Transaction updated = transactionRepository.findByIdAndUserId(t1.getId(), testUser.getId()).orElseThrow();
         assertEquals("Groceries", updated.getCategory().getName());
 
-        // Verify future transactions auto-categorize
-        Category future = categorizationService.categorize("PURCHASE SPAR BREAD");
+        Category future = categorizationService.categorize("PURCHASE SPAR BREAD", testUser);
         assertEquals("Groceries", future.getName());
     }
 
@@ -123,7 +130,7 @@ public class AnalyticsAndImportTest {
         LocalDate start = LocalDate.of(2026, 8, 1);
         LocalDate end = LocalDate.of(2026, 8, 31);
 
-        FinancialSummaryDTO summary = analyticsService.getFinancialSummary(start, end, null);
+        FinancialSummaryDTO summary = analyticsService.getFinancialSummary(testUser.getId(), start, end, null);
 
         assertNotNull(summary);
         assertNotNull(summary.getNarrative());
@@ -144,20 +151,17 @@ public class AnalyticsAndImportTest {
                 csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
-        // First pass: imports all new transactions
-        ImportResultDTO firstPass = transactionImportService.importCsv(file);
+        ImportResultDTO firstPass = transactionImportService.importCsv(file, testUser);
         int initialImported = firstPass.getImported();
         assertTrue(initialImported > 0, "First pass should import transactions");
         assertEquals(0, firstPass.getDuplicateCount(), "First pass should have 0 duplicates");
         assertTrue(firstPass.getParseErrors().isEmpty(), "First pass should have no parse errors");
 
-        // Second pass: re-importing the exact same file
-        ImportResultDTO secondPass = transactionImportService.importCsv(file);
+        ImportResultDTO secondPass = transactionImportService.importCsv(file, testUser);
         assertEquals(0, secondPass.getImported(), "Second pass should import 0 transactions");
         assertEquals(initialImported, secondPass.getDuplicateCount(), "Second pass duplicateCount must dynamically match first pass imported count");
         assertTrue(secondPass.getParseErrors().isEmpty(), "Second pass should have no parse errors");
 
-        // Third pass: file containing a duplicate row, a brand new row, and a malformed row that causes a parse error
         String mixedContent = "Posting Date,Effective Date,Particulars,Payments,Receipts,Balance\n" +
                 "15 Sep 2026,15 Sep 2026,SUPERMARKET ONE,1,500.00,,50,000.00\n" +
                 "18 Sep 2026,18 Sep 2026,NEW BOOKSTORE,2,200.00,,121,950.00\n" +
@@ -170,7 +174,7 @@ public class AnalyticsAndImportTest {
                 mixedContent.getBytes(StandardCharsets.UTF_8)
         );
 
-        ImportResultDTO mixedResult = transactionImportService.importCsv(mixedFile);
+        ImportResultDTO mixedResult = transactionImportService.importCsv(mixedFile, testUser);
         assertEquals(1, mixedResult.getImported(), "Should import the 1 new transaction");
         assertEquals(1, mixedResult.getDuplicateCount(), "Should detect the 1 duplicate transaction");
         assertEquals(1, mixedResult.getParseErrors().size(), "Should record the 1 row parse error");
