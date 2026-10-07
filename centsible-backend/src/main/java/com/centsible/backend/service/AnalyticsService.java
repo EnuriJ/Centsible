@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -37,16 +36,16 @@ public class AnalyticsService {
         this.transactionRepository = transactionRepository;
     }
 
-    public List<CategorySpendDTO> getSpendByCategory(LocalDate startDate, LocalDate endDate) {
-        return transactionRepository.aggregateSpendByCategory(startDate, endDate).stream()
+    public List<CategorySpendDTO> getSpendByCategory(Long userId, LocalDate startDate, LocalDate endDate) {
+        return transactionRepository.aggregateSpendByCategory(userId, startDate, endDate).stream()
                 .map(p -> new CategorySpendDTO(p.getCategory(), p.getTotalSpent()))
                 .collect(Collectors.toList());
     }
 
-    public List<CategoryIncomeDTO> getIncomeByCategory(LocalDate startDate, LocalDate endDate) {
-        List<CategoryIncomeProjection> projections = transactionRepository.aggregateIncomeByCategory(startDate, endDate);
+    public List<CategoryIncomeDTO> getIncomeByCategory(Long userId, LocalDate startDate, LocalDate endDate) {
+        List<CategoryIncomeProjection> projections = transactionRepository.aggregateIncomeByCategory(userId, startDate, endDate);
         List<Transaction> incomeTransactions = transactionRepository
-                .findByAmountGreaterThanAndDateBetweenOrderByDateAsc(BigDecimal.ZERO, startDate, endDate);
+                .findByUserIdAndAmountGreaterThanAndDateBetweenOrderByDateAsc(userId, BigDecimal.ZERO, startDate, endDate);
 
         Map<String, Integer> countByCategory = new HashMap<>();
         for (Transaction t : incomeTransactions) {
@@ -74,9 +73,9 @@ public class AnalyticsService {
         return result;
     }
 
-    public List<MonthlySpendDTO> getSpendOverTime(LocalDate startDate, LocalDate endDate, String category) {
+    public List<MonthlySpendDTO> getSpendOverTime(Long userId, LocalDate startDate, LocalDate endDate, String category) {
         List<Transaction> expenses = transactionRepository
-                .findByAmountLessThanAndDateBetweenOrderByDateAsc(BigDecimal.ZERO, startDate, endDate);
+                .findByUserIdAndAmountLessThanAndDateBetweenOrderByDateAsc(userId, BigDecimal.ZERO, startDate, endDate);
 
         if (category != null && !category.isBlank()) {
             expenses = expenses.stream()
@@ -96,8 +95,9 @@ public class AnalyticsService {
                 .collect(Collectors.toList());
     }
 
-    public List<MonthlyCashFlowDTO> getCashFlowOverTime(LocalDate startDate, LocalDate endDate, String category) {
-        List<Transaction> transactions = transactionRepository.findByDateBetweenOrderByDateAsc(startDate, endDate);
+    public List<MonthlyCashFlowDTO> getCashFlowOverTime(Long userId, LocalDate startDate, LocalDate endDate, String category) {
+        List<Transaction> transactions = transactionRepository
+                .findByUserIdAndDateBetweenOrderByDateAsc(userId, startDate, endDate);
 
         if (category != null && !category.isBlank()) {
             transactions = transactions.stream()
@@ -106,7 +106,6 @@ public class AnalyticsService {
         }
 
         Map<YearMonth, BigDecimal[]> byMonth = new TreeMap<>();
-        // array index 0 = income, index 1 = expenses
         for (Transaction t : transactions) {
             YearMonth month = YearMonth.from(t.getDate());
             BigDecimal[] sums = byMonth.computeIfAbsent(month, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
@@ -128,8 +127,9 @@ public class AnalyticsService {
         return result;
     }
 
-    public FinancialSummaryDTO getFinancialSummary(LocalDate startDate, LocalDate endDate, String category) {
-        List<Transaction> transactions = transactionRepository.findByDateBetweenOrderByDateAsc(startDate, endDate);
+    public FinancialSummaryDTO getFinancialSummary(Long userId, LocalDate startDate, LocalDate endDate, String category) {
+        List<Transaction> transactions = transactionRepository
+                .findByUserIdAndDateBetweenOrderByDateAsc(userId, startDate, endDate);
 
         if (category != null && !category.isBlank()) {
             transactions = transactions.stream()
@@ -147,14 +147,13 @@ public class AnalyticsService {
             dto.setNetSavings(BigDecimal.ZERO);
             dto.setSavingsRate(0.0);
             dto.setTotalTransactions(0);
-            dto.setNarrative("No transactions found for the selected period. Upload a CSV file or adjust your filters to view your financial summary.");
+            dto.setNarrative("No transactions found for the selected period. Upload a statement or adjust your filters to view your financial summary.");
             return dto;
         }
 
         LocalDate effectiveStart = transactions.get(0).getDate();
         LocalDate effectiveEnd = transactions.get(transactions.size() - 1).getDate();
 
-        // If specific dates were provided by the caller (within reasonable bounds), use those
         if (startDate.isAfter(LocalDate.of(1950, 1, 1))) {
             effectiveStart = startDate;
         }
@@ -196,7 +195,6 @@ public class AnalyticsService {
                     .doubleValue();
         }
 
-        // Identify top expense category
         String topExpenseCategory = null;
         BigDecimal topExpenseAmount = BigDecimal.ZERO;
         for (Map.Entry<String, BigDecimal> entry : expenseByCat.entrySet()) {
@@ -214,7 +212,6 @@ public class AnalyticsService {
                     .doubleValue();
         }
 
-        // Identify top income category
         String topIncomeCategory = null;
         BigDecimal topIncomeAmount = BigDecimal.ZERO;
         for (Map.Entry<String, BigDecimal> entry : incomeByCat.entrySet()) {
@@ -237,7 +234,6 @@ public class AnalyticsService {
         dto.setTopIncomeCategory(topIncomeCategory);
         dto.setTopIncomeAmount(topIncomeAmount);
 
-        // Format narrative in LKR (Rs. )
         String periodText;
         if (effectiveStart.getYear() == effectiveEnd.getYear() &&
             effectiveStart.getMonth() == effectiveEnd.getMonth() &&
