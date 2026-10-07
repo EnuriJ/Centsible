@@ -2,6 +2,7 @@ package com.centsible.backend.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,14 +35,19 @@ public class Transaction {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     public Transaction() {
     }
 
-    public Transaction(LocalDate date, String description, BigDecimal amount, Category category) {
+    public Transaction(LocalDate date, String description, BigDecimal amount, Category category, User user) {
         this.date = date;
         this.description = description;
         this.amount = amount;
         this.category = category;
+        this.user = user;
     }
 
     public Long getId() {
@@ -82,5 +88,13 @@ public class Transaction {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }
