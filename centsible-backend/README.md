@@ -27,6 +27,17 @@ Login with:
 
 Then run e.g. `SELECT * FROM TRANSACTIONS;` to see the seeded rows.
 
+## Configuration
+- `JWT_SECRET` — signing key for auth tokens. Safe to leave unset locally (a
+  built-in dev key is used and a startup warning reminds you it's in use).
+  **Must** be set to a unique, random value before deploying anywhere public —
+  the dev fallback is committed to this public repo, so anyone could forge
+  valid tokens with it if it's still in use on a live deployment.
+- `JWT_EXPIRATION_MS` — token lifetime in ms (default 24h).
+- `CORS_ALLOWED_ORIGINS` — comma-separated frontend origins allowed to call
+  this API (default covers `localhost:5173`/`3000`). Set to your deployed
+  frontend's URL(s) in production.
+
 ## What's in this step
 - `model/Category.java`, `model/Transaction.java` — JPA entities (the SQL schema is
   auto-generated from these via Hibernate)
