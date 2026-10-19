@@ -2,8 +2,10 @@ import axios from 'axios'
 
 export const AUTH_TOKEN_KEY = 'centsible_token'
 
+// In production, set VITE_API_URL at build time to the deployed backend's URL
+// (e.g. https://your-backend.onrender.com/api). Falls back to localhost for local dev.
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
 })
 
 // Attach Bearer token to all outgoing requests if present

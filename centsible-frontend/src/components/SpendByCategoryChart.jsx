@@ -44,7 +44,7 @@ export default function SpendByCategoryChart({ refreshKey, startDate, endDate, c
   if (status === 'error') {
     return (
       <p className="chart-message chart-message--error">
-        Couldn't reach the backend. Is it running at localhost:8080?
+        Couldn't reach the backend. Is it running and reachable?
       </p>
     )
   }
