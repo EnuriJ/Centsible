@@ -30,12 +30,20 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final boolean h2ConsoleEnabled;
+    private final List<String> allowedOrigins;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthFilter,
-            @Value("${spring.h2.console.enabled:false}") boolean h2ConsoleEnabled) {
+            @Value("${spring.h2.console.enabled:false}") boolean h2ConsoleEnabled,
+            // Comma-separated list of allowed frontend origins. Defaults cover local dev;
+            // set CORS_ALLOWED_ORIGINS in production to the deployed frontend's URL(s).
+            @Value("${centsible.cors.allowed-origins:http://localhost:5173,http://localhost:3000}") String allowedOriginsRaw) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.h2ConsoleEnabled = h2ConsoleEnabled;
+        this.allowedOrigins = Arrays.stream(allowedOriginsRaw.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
     }
 
     @Bean
@@ -77,7 +85,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
