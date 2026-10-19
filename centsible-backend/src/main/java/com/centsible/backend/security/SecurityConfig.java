@@ -73,8 +73,11 @@ public class SecurityConfig {
                     response.setContentType("application/json");
                     response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"" + authException.getMessage() + "\"}");
                 }))
-                .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                // jwtAuthFilter must be registered first - addFilterBefore can only
+                // position a new filter relative to one that already has a registered
+                // order, and a custom filter class only gets one once it's been added.
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class);
 
         // Allow frames for H2 console only when enabled, otherwise deny
         if (h2ConsoleEnabled) {
