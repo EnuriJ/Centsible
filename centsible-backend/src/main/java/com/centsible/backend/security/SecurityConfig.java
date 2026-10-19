@@ -29,16 +29,19 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final boolean h2ConsoleEnabled;
     private final List<String> allowedOrigins;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthFilter,
+            RateLimitFilter rateLimitFilter,
             @Value("${spring.h2.console.enabled:false}") boolean h2ConsoleEnabled,
             // Comma-separated list of allowed frontend origins. Defaults cover local dev;
             // set CORS_ALLOWED_ORIGINS in production to the deployed frontend's URL(s).
             @Value("${centsible.cors.allowed-origins:http://localhost:5173,http://localhost:3000}") String allowedOriginsRaw) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.rateLimitFilter = rateLimitFilter;
         this.h2ConsoleEnabled = h2ConsoleEnabled;
         this.allowedOrigins = Arrays.stream(allowedOriginsRaw.split(","))
                 .map(String::trim)
@@ -70,6 +73,7 @@ public class SecurityConfig {
                     response.setContentType("application/json");
                     response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"" + authException.getMessage() + "\"}");
                 }))
+                .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         // Allow frames for H2 console only when enabled, otherwise deny
