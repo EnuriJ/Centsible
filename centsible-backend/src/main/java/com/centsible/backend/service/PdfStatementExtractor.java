@@ -14,6 +14,13 @@ import java.util.zip.Inflater;
  */
 public class PdfStatementExtractor {
 
+    // Decompression limits. A tiny, maliciously crafted PDF ("zip bomb") can inflate to
+    // gigabytes and exhaust the server's memory, so every stream - and the document as a
+    // whole - is capped. Real statement pages are a few KB per content stream; these
+    // limits are far above anything legitimate.
+    private static final int MAX_STREAM_OUTPUT_BYTES = 8 * 1024 * 1024;
+    private static final long MAX_TOTAL_OUTPUT_BYTES = 32L * 1024 * 1024;
+
     public static List<String> extractLines(byte[] pdfBytes) {
         List<String> lines = new ArrayList<>();
         if (pdfBytes == null || pdfBytes.length == 0) {
@@ -25,9 +32,15 @@ public class PdfStatementExtractor {
 
         // 2. Parse text operators from each decompressed stream
         StringBuilder pageText = new StringBuilder();
+        long totalDecompressed = 0;
         for (byte[] stream : streams) {
-            String decompressed = decompressStream(stream);
-            if (decompressed != null && !decompressed.isBlank()) {
+            int allowed = (int) Math.min(MAX_STREAM_OUTPUT_BYTES, MAX_TOTAL_OUTPUT_BYTES - totalDecompressed);
+            String decompressed = decompressStream(stream, allowed);
+            totalDecompressed += decompressed.length();
+            if (totalDecompressed > MAX_TOTAL_OUTPUT_BYTES) {
+                throw new IllegalArgumentException("PDF contains too much data to process safely");
+            }
+            if (!decompressed.isBlank()) {
                 parseTextFromContentStream(decompressed, pageText);
             }
         }
@@ -79,20 +92,10 @@ public class PdfStatementExtractor {
         return streams;
     }
 
-    private static String decompressStream(byte[] data) {
+    private static String decompressStream(byte[] data, int maxOutputBytes) {
         // Try decompressing with standard zlib header
         try {
-            Inflater inflater = new Inflater(false);
-            inflater.setInput(data);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[4096];
-            while (!inflater.finished()) {
-                int count = inflater.inflate(buffer);
-                if (count <= 0) break;
-                baos.write(buffer, 0, count);
-            }
-            inflater.end();
-            byte[] result = baos.toByteArray();
+            byte[] result = inflateBounded(data, false, maxOutputBytes);
             if (result.length > 0) {
                 return new String(result, StandardCharsets.ISO_8859_1);
             }
@@ -101,17 +104,7 @@ public class PdfStatementExtractor {
 
         // Try raw deflate (nowrap = true)
         try {
-            Inflater inflater = new Inflater(true);
-            inflater.setInput(data);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[4096];
-            while (!inflater.finished()) {
-                int count = inflater.inflate(buffer);
-                if (count <= 0) break;
-                baos.write(buffer, 0, count);
-            }
-            inflater.end();
-            byte[] result = baos.toByteArray();
+            byte[] result = inflateBounded(data, true, maxOutputBytes);
             if (result.length > 0) {
                 return new String(result, StandardCharsets.ISO_8859_1);
             }
@@ -120,6 +113,31 @@ public class PdfStatementExtractor {
 
         // If uncompressed ASCII/text stream
         return new String(data, StandardCharsets.ISO_8859_1);
+    }
+
+    /**
+     * Inflates {@code data}, refusing to produce more than {@code maxBytes} of output.
+     * Throws IllegalArgumentException (not DataFormatException, so callers don't mistake it
+     * for "not compressed" and retry) the moment the limit would be exceeded.
+     */
+    private static byte[] inflateBounded(byte[] data, boolean nowrap, int maxBytes) throws DataFormatException {
+        Inflater inflater = new Inflater(nowrap);
+        try {
+            inflater.setInput(data);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            while (!inflater.finished()) {
+                int count = inflater.inflate(buffer);
+                if (count <= 0) break;
+                if (baos.size() + count > maxBytes) {
+                    throw new IllegalArgumentException("PDF contains too much data to process safely");
+                }
+                baos.write(buffer, 0, count);
+            }
+            return baos.toByteArray();
+        } finally {
+            inflater.end();
+        }
     }
 
     private static void parseTextFromContentStream(String content, StringBuilder output) {
