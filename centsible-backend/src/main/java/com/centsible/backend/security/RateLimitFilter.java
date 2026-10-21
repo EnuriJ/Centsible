@@ -17,6 +17,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * (login/signup) - the obvious target for brute-force password guessing or signup spam,
  * since nothing else in the API is reachable without a token.
  *
+ * Clients are keyed on request.getRemoteAddr() only - the X-Forwarded-For header is
+ * client-controlled, so trusting it would let anyone dodge the limit by sending a fresh
+ * fake value each request. Behind a hosting platform's proxy, the production profile sets
+ * server.forward-headers-strategy=native so Tomcat resolves the real client address from
+ * the proxy's forwarded header (only when the request actually arrived via a trusted proxy).
+ *
  * Fixed-window counter, single JVM instance. That's intentionally simple: fine for a
  * single deployed instance, which is all this project needs. A multi-instance deployment
  * would need a shared store (e.g. Redis) instead, since each instance would otherwise
@@ -34,6 +40,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private final ConcurrentHashMap<String, Window> requestCounts = new ConcurrentHashMap<>();
+    private volatile long lastCleanup = System.currentTimeMillis();
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
@@ -48,10 +55,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        String clientIp = resolveClientIp(request);
+        long now = System.currentTimeMillis();
+        evictStaleEntries(now);
+
+        String clientIp = request.getRemoteAddr();
         Window window = requestCounts.computeIfAbsent(clientIp, ip -> new Window());
 
-        long now = System.currentTimeMillis();
         synchronized (window) {
             if (now - window.windowStart > WINDOW_MILLIS) {
                 window.windowStart = now;
@@ -69,14 +78,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    // Most hosting platforms (Render, Railway, etc.) sit behind a proxy/load balancer, so
-    // prefer X-Forwarded-For when present; fall back to the direct remote address for
-    // local dev and tests.
-    private String resolveClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
+    // Drop entries whose window has expired so the map can't grow without bound as new
+    // client addresses appear. Runs at most once per window.
+    private void evictStaleEntries(long now) {
+        if (now - lastCleanup < WINDOW_MILLIS) {
+            return;
         }
-        return request.getRemoteAddr();
+        lastCleanup = now;
+        requestCounts.entrySet().removeIf(entry -> now - entry.getValue().windowStart > WINDOW_MILLIS);
     }
 }
