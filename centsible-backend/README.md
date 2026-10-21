@@ -38,6 +38,23 @@ Then run e.g. `SELECT * FROM TRANSACTIONS;` to see the seeded rows.
   this API (default covers `localhost:5173`/`3000`). Set to your deployed
   frontend's URL(s) in production.
 
+### Production (`SPRING_PROFILES_ACTIVE=prod`)
+The `prod` profile (`application-prod.properties`) switches to PostgreSQL, turns
+off the H2 console and SQL logging, and **requires** the values below - the app
+refuses to start if any is missing, rather than falling back to something
+insecure.
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | JDBC URL, e.g. `jdbc:postgresql://host:5432/centsible?sslmode=require` (not the `postgres://...` form some hosts hand out) |
+| `DATABASE_USERNAME` / `DATABASE_PASSWORD` | Database credentials |
+| `JWT_SECRET` | Random secret, at least 32 characters |
+| `CORS_ALLOWED_ORIGINS` | Deployed frontend URL(s), comma-separated |
+| `PORT` | Optional - port to listen on (default 8080) |
+
+Generate a secret with `openssl rand -base64 48`. Local development needs none of
+this: without the `prod` profile it uses the H2 file database and the dev defaults.
+
 ## What's in this step
 - `model/Category.java`, `model/Transaction.java` — JPA entities (the SQL schema is
   auto-generated from these via Hibernate)

@@ -35,6 +35,12 @@ public class JwtService {
             // Checked separately (vs. the resolved secret) purely to detect whether the env
             // var was actually set, so we can warn when the public built-in dev key is in use.
             @Value("${JWT_SECRET:}") String jwtSecretEnvVar) {
+        // HS256 needs a key of at least 256 bits. Checking here fails the app at startup with
+        // a clear message, instead of at the first login with a confusing WeakKeyException.
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "JWT secret is too short: it must be at least 32 bytes (256 bits). Set JWT_SECRET to a longer random value.");
+        }
         this.secret = secret;
         this.expirationMs = expirationMs;
         if (jwtSecretEnvVar == null || jwtSecretEnvVar.isBlank()) {
