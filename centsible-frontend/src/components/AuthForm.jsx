@@ -122,8 +122,9 @@ export default function AuthForm() {
               id="auth-password"
               type="password"
               required
-              placeholder={mode === 'signup' ? 'At least 6 characters' : 'Enter your password'}
-              minLength={mode === 'signup' ? 6 : undefined}
+              placeholder={mode === 'signup' ? 'At least 10 characters' : 'Enter your password'}
+              minLength={mode === 'signup' ? 10 : undefined}
+              maxLength={mode === 'signup' ? 72 : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}

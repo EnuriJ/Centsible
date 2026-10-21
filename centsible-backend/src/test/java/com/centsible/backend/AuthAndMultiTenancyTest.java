@@ -98,6 +98,21 @@ public class AuthAndMultiTenancyTest {
     }
 
     @Test
+    public void testWeakPasswordIsRejectedWithFieldError() throws Exception {
+        String email = "weak_" + System.currentTimeMillis() + "@centsible.local";
+        SignUpRequestDTO weak = new SignUpRequestDTO(email, "short123", "Weak Pass");
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(weak)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Validation failed")))
+                .andExpect(jsonPath("$.fields.password", containsString("between 10 and 72")));
+
+        assertTrue(userRepository.findByEmail(email).isEmpty(), "No account should be created for a weak password");
+    }
+
+    @Test
     public void testLoginWithValidAndInvalidCredentials() throws Exception {
         String email = "bob_" + System.currentTimeMillis() + "@centsible.local";
         SignUpRequestDTO signUp = new SignUpRequestDTO(email, "ValidPassword99!", "Bob Builder");

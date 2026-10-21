@@ -11,7 +11,9 @@ public class SignUpRequestDTO {
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    // BCrypt only uses the first 72 bytes of a password, so longer input would be silently
+    // truncated (or rejected, depending on the library version) - cap it up front.
+    @Size(min = 10, max = 72, message = "Password must be between 10 and 72 characters")
     private String password;
 
     private String displayName;
