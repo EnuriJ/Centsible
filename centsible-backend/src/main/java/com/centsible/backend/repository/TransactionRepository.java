@@ -4,6 +4,7 @@ import com.centsible.backend.model.Category;
 import com.centsible.backend.model.Transaction;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -40,6 +41,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             Long userId, LocalDate date, String description, BigDecimal amount, Category category);
 
     long countByUserId(Long userId);
+
+    // Used by account deletion - removes every transaction belonging to one user
+    @Modifying
+    @Query("DELETE FROM Transaction t WHERE t.user.id = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 
     // Aggregate expenses (amount < 0), sums absolute value per category for a specific user
     @Query("SELECT t.category.name AS category, SUM(ABS(t.amount)) AS totalSpent " +

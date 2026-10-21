@@ -22,6 +22,8 @@ import java.util.Optional;
 @Component
 public class DataSeeder implements CommandLineRunner {
 
+    public static final String DEMO_EMAIL = "demo@centsible.com";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CategorizationService categorizationService;
@@ -43,9 +45,9 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // Provision demo user if not present
-        User demoUser = userRepository.findByEmail("demo@centsible.com")
+        User demoUser = userRepository.findByEmail(DEMO_EMAIL)
                 .orElseGet(() -> userRepository.save(
-                        new User("demo@centsible.com", passwordEncoder.encode("Password123!"), "Demo Portfolio")
+                        new User(DEMO_EMAIL, passwordEncoder.encode("Password123!"), "Demo Portfolio")
                 ));
 
         // Seed default categories and categorization rules for demo user

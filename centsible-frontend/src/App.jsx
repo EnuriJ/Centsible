@@ -10,10 +10,15 @@ import CashFlowChart from './components/CashFlowChart'
 import SpendOverTimeChart from './components/SpendOverTimeChart'
 import CsvUploadForm from './components/CsvUploadForm'
 import FiltersBar from './components/FiltersBar'
+import DeleteAccountDialog from './components/DeleteAccountDialog'
 import './App.css'
+
+// The shared demo account can't be deleted (the server enforces this too)
+const DEMO_EMAIL = 'demo@centsible.com'
 
 function Dashboard() {
   const { user, logout } = useAuth()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({ startDate: '', endDate: '', category: '' })
 
@@ -51,9 +56,21 @@ function Dashboard() {
             <button type="button" className="btn-signout" onClick={logout} title="Sign Out">
               Sign Out
             </button>
+            {user?.email !== DEMO_EMAIL && (
+              <button
+                type="button"
+                className="btn-delete-account"
+                onClick={() => setShowDeleteDialog(true)}
+                title="Permanently delete your account and data"
+              >
+                Delete account
+              </button>
+            )}
           </div>
         </div>
       </header>
+
+      {showDeleteDialog && <DeleteAccountDialog onClose={() => setShowDeleteDialog(false)} />}
 
       <main className="app-main">
         {/* CSV / PDF Import Section */}

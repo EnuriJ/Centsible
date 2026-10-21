@@ -63,6 +63,13 @@ export function AuthProvider({ children }) {
     return receivedUser
   }
 
+  // Permanently deletes the account and all its data on the server, then signs out locally.
+  // Errors (e.g. wrong password) propagate to the caller so the dialog can show them.
+  const deleteAccount = async (password) => {
+    await api.delete('/account', { data: { password } })
+    logout()
+  }
+
   const value = {
     user,
     token,
@@ -71,6 +78,7 @@ export function AuthProvider({ children }) {
     login,
     signup,
     logout,
+    deleteAccount,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

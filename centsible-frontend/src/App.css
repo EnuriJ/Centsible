@@ -952,3 +952,125 @@
     transform: rotate(360deg);
   }
 }
+
+/* Delete-account link + confirmation dialog */
+.btn-delete-account {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--centsible-text-secondary);
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0.35rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.btn-delete-account:hover {
+  color: var(--centsible-error);
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.dialog-card {
+  background: var(--centsible-surface);
+  border-radius: var(--centsible-radius);
+  box-shadow: var(--centsible-shadow-hover);
+  width: 100%;
+  max-width: 440px;
+  padding: 1.75rem;
+}
+
+.dialog-card h2 {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-brand);
+  font-size: 1.25rem;
+  color: var(--centsible-dark);
+}
+
+.dialog-warning {
+  margin: 0 0 1.25rem;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--centsible-text-secondary);
+}
+
+.dialog-card label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--centsible-text-primary);
+}
+
+.dialog-card input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.8rem;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  border: 1px solid var(--centsible-border);
+  border-radius: 8px;
+}
+
+.dialog-card input:focus {
+  outline: 2px solid var(--centsible-primary);
+  outline-offset: 1px;
+}
+
+.dialog-error {
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.8rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: var(--centsible-error);
+  background: var(--centsible-error-bg);
+  border-radius: 8px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.dialog-btn-cancel,
+.dialog-btn-danger {
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dialog-btn-cancel {
+  color: var(--centsible-text-secondary);
+  background: transparent;
+  border: 1px solid var(--centsible-border);
+}
+
+.dialog-btn-danger {
+  color: #ffffff;
+  background: var(--centsible-error);
+  border: 1px solid var(--centsible-error);
+}
+
+.dialog-btn-danger:disabled,
+.dialog-btn-cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
