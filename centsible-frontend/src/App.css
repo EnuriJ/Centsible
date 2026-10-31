@@ -1074,3 +1074,94 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* Privacy note on the sign-in card */
+.auth-demo-note {
+  margin: 0.6rem 0 0;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  color: var(--centsible-text-secondary);
+}
+
+.auth-privacy {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--centsible-border);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: var(--centsible-text-secondary);
+  line-height: 1.5;
+}
+
+.auth-privacy summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--centsible-text-primary);
+}
+
+.auth-privacy summary:hover {
+  color: var(--centsible-primary);
+}
+
+.auth-privacy ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.auth-privacy strong {
+  color: var(--centsible-text-primary);
+}
+
+/* Read-only demo banner + disabled upload card */
+.demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--centsible-mint-bg);
+  border: 1px solid var(--centsible-mint-badge);
+  border-radius: var(--centsible-radius);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  color: var(--centsible-text-primary);
+}
+
+.demo-banner p {
+  margin: 0;
+}
+
+.demo-banner-action {
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: var(--centsible-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.demo-banner-action:hover {
+  background: var(--centsible-primary-hover);
+}
+
+.upload-readonly-note {
+  margin: 0 0 0.9rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--centsible-primary);
+}
+
+.upload-card--readonly .upload-controls {
+  opacity: 0.55;
+}

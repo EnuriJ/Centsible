@@ -2,10 +2,11 @@ import { useState } from 'react'
 import api from '../api/client'
 import { formatLKR } from '../utils/currency'
 
-export default function CsvUploadForm({ onUploadSuccess }) {
+export default function CsvUploadForm({ onUploadSuccess, readOnly = false }) {
   const [file, setFile] = useState(null)
   const [status, setStatus] = useState('idle') // idle | uploading | success | error
   const [result, setResult] = useState(null)
+  const [errorMessage, setErrorMessage] = useState(null)
 
   function handleFileChange(e) {
     setFile(e.target.files[0] ?? null)
@@ -16,6 +17,7 @@ export default function CsvUploadForm({ onUploadSuccess }) {
   async function handleUpload() {
     if (!file) return
     setStatus('uploading')
+    setErrorMessage(null)
 
     const formData = new FormData()
     formData.append('file', file)
@@ -29,13 +31,20 @@ export default function CsvUploadForm({ onUploadSuccess }) {
       onUploadSuccess?.()
     } catch (err) {
       console.error('Upload failed:', err)
+      // A 403 carries a deliberate, user-readable reason (e.g. the demo account is read-only)
+      setErrorMessage(err.response?.status === 403 ? err.response?.data?.error ?? null : null)
       setStatus('error')
     }
   }
 
   return (
-    <div className="upload-card">
+    <div className={`upload-card${readOnly ? ' upload-card--readonly' : ''}`}>
       <h2>Import Transactions</h2>
+      {readOnly && (
+        <p className="upload-readonly-note">
+          Importing is turned off in the demo. Create your own account to upload a CSV or bank statement.
+        </p>
+      )}
       <p className="upload-hint">
         CSV columns: <code>date, description, amount, category</code> — amount
         positive for income, negative for expenses. Both income and expenses
@@ -44,8 +53,8 @@ export default function CsvUploadForm({ onUploadSuccess }) {
       </p>
 
       <div className="upload-controls">
-        <input type="file" accept=".csv,.pdf" onChange={handleFileChange} />
-        <button onClick={handleUpload} disabled={!file || status === 'uploading'}>
+        <input type="file" accept=".csv,.pdf" onChange={handleFileChange} disabled={readOnly} />
+        <button onClick={handleUpload} disabled={readOnly || !file || status === 'uploading'}>
           {status === 'uploading' ? 'Uploading…' : 'Upload'}
         </button>
       </div>
@@ -100,7 +109,7 @@ export default function CsvUploadForm({ onUploadSuccess }) {
 
       {status === 'error' && (
         <p className="upload-message upload-message--error">
-          Upload failed. Check the backend is running and the file is a valid CSV or PDF.
+          {errorMessage ?? 'Upload failed. Check the backend is running and the file is a valid CSV or PDF.'}
         </p>
       )}
     </div>

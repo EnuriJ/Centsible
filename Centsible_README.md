@@ -58,11 +58,13 @@ npm install
 npm run dev
 ```
 
-On first run, the backend seeds a demo account with realistic sample
-transactions so the dashboard has real data to show immediately:
-
-- **Email:** `demo@centsible.com`
-- **Password:** `Password123!`
+On first run, the backend seeds a **read-only demo account** with synthetic
+sample transactions, so the dashboard has data to show immediately. Click
+**Try the demo** on the sign-in page (or log in as `demo@centsible.com` /
+`Password123!`). The demo can look at everything but can't import, edit or
+delete anything: the server rejects every state-changing request from that
+account, so the shared data can't be altered. Set `DEMO_ENABLED=false` to skip
+seeding it.
 
 Or sign up with your own account — new users start with a default set of
 categories and keyword rules, and can import their own CSV or PDF statement.

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import Logo from './Logo'
+import { DEMO_EMAIL, DEMO_PASSWORD } from '../utils/demo'
 
 export default function AuthForm() {
   const { login, signup } = useAuth()
@@ -38,7 +39,7 @@ export default function AuthForm() {
     setError(null)
     setSubmitting(true)
     try {
-      await login('demo@centsible.com', 'Password123!')
+      await login(DEMO_EMAIL, DEMO_PASSWORD)
     } catch (err) {
       console.error('Demo login failed:', err)
       setError('Could not access demo portfolio. Ensure the backend server is running.')
@@ -147,7 +148,7 @@ export default function AuthForm() {
         </form>
 
         <div className="auth-divider">
-          <span>or test drive instantly</span>
+          <span>or look around first</span>
         </div>
 
         <button
@@ -156,8 +157,39 @@ export default function AuthForm() {
           onClick={handleDemoLogin}
           disabled={submitting}
         >
-          Explore Demo Portfolio
+          Try the demo
         </button>
+        <p className="auth-demo-note">
+          Read-only, with sample data. Nothing you do there is saved, and no sign-up is needed.
+        </p>
+
+        <details className="auth-privacy">
+          <summary>Privacy &amp; your data</summary>
+          <ul>
+            <li>
+              <strong>What&rsquo;s stored:</strong> your email, display name, a hashed password (never
+              the password itself), and the transactions, categories and rules from your imports,
+              including transaction descriptions as they appear on your statement.
+            </li>
+            <li>
+              <strong>Your files:</strong> an uploaded CSV or PDF is read to pull out its transactions
+              and is not kept. Only the extracted transaction rows are saved.
+            </li>
+            <li>
+              <strong>Your control:</strong> use &ldquo;Delete account&rdquo; in the header at any time to
+              remove your account and all of its data.
+            </li>
+            <li>
+              <strong>No selling, no ads:</strong> Centsible doesn&rsquo;t sell your data and has no
+              advertising or analytics.
+            </li>
+            <li>
+              <strong>Please note:</strong> this is a portfolio project, not a bank-grade service.
+              If you&rsquo;d rather not upload a real statement, black out account numbers first
+              or stick with the demo.
+            </li>
+          </ul>
+        </details>
       </div>
     </div>
   )

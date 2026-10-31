@@ -11,13 +11,13 @@ import SpendOverTimeChart from './components/SpendOverTimeChart'
 import CsvUploadForm from './components/CsvUploadForm'
 import FiltersBar from './components/FiltersBar'
 import DeleteAccountDialog from './components/DeleteAccountDialog'
+import { isDemoUser } from './utils/demo'
 import './App.css'
 
-// The shared demo account can't be deleted (the server enforces this too)
-const DEMO_EMAIL = 'demo@centsible.com'
 
 function Dashboard() {
   const { user, logout } = useAuth()
+  const isDemo = isDemoUser(user)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({ startDate: '', endDate: '', category: '' })
@@ -56,7 +56,7 @@ function Dashboard() {
             <button type="button" className="btn-signout" onClick={logout} title="Sign Out">
               Sign Out
             </button>
-            {user?.email !== DEMO_EMAIL && (
+            {!isDemo && (
               <button
                 type="button"
                 className="btn-delete-account"
@@ -73,8 +73,20 @@ function Dashboard() {
       {showDeleteDialog && <DeleteAccountDialog onClose={() => setShowDeleteDialog(false)} />}
 
       <main className="app-main">
+        {isDemo && (
+          <div className="demo-banner" role="status">
+            <p>
+              <strong>You&rsquo;re viewing the read-only demo.</strong> These are sample transactions;
+              importing and editing are switched off.
+            </p>
+            <button type="button" className="demo-banner-action" onClick={logout}>
+              Create your own account
+            </button>
+          </div>
+        )}
+
         {/* CSV / PDF Import Section */}
-        <CsvUploadForm onUploadSuccess={handleUploadSuccess} />
+        <CsvUploadForm onUploadSuccess={handleUploadSuccess} readOnly={isDemo} />
 
         {/* Global Filter Bar */}
         <FiltersBar filters={filters} onChange={setFilters} />

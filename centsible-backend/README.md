@@ -51,6 +51,7 @@ insecure.
 | `JWT_SECRET` | Random secret, at least 32 characters |
 | `CORS_ALLOWED_ORIGINS` | Deployed frontend URL(s), comma-separated |
 | `PORT` | Optional - port to listen on (default 8080) |
+| `DEMO_ENABLED` | Optional - `false` skips seeding the shared read-only demo account (default `true`) |
 
 Generate a secret with `openssl rand -base64 48`. Local development needs none of
 this: without the `prod` profile it uses the H2 file database and the dev defaults.

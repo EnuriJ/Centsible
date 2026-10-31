@@ -8,6 +8,7 @@ import com.centsible.backend.repository.TransactionRepository;
 import com.centsible.backend.repository.UserRepository;
 import com.centsible.backend.service.CategorizationService;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -16,10 +17,14 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 /**
- * Seeds default demo user with synthetic showcase transactions and default categories/rules.
- * Does not touch or reassign any existing data.
+ * Seeds the shared, read-only demo user with synthetic showcase transactions and default
+ * categories/rules. Does not touch or reassign any existing data.
+ *
+ * The demo account is read-only: the security filter chain rejects every state-changing
+ * request made by it (see SecurityConfig). Set DEMO_ENABLED=false to skip seeding entirely.
  */
 @Component
+@ConditionalOnProperty(name = "centsible.demo.enabled", havingValue = "true", matchIfMissing = true)
 public class DataSeeder implements CommandLineRunner {
 
     public static final String DEMO_EMAIL = "demo@centsible.com";

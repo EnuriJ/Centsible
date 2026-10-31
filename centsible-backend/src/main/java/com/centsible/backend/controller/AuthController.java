@@ -1,5 +1,6 @@
 package com.centsible.backend.controller;
 
+import com.centsible.backend.config.DataSeeder;
 import com.centsible.backend.dto.AuthResponseDTO;
 import com.centsible.backend.dto.LoginRequestDTO;
 import com.centsible.backend.dto.SignUpRequestDTO;
@@ -50,6 +51,12 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignUpRequestDTO request) {
         String email = request.getEmail().trim().toLowerCase();
+        // The demo address is reserved so nobody can register it (even if demo seeding is
+        // switched off) and end up with a confusingly read-only account.
+        if (DataSeeder.DEMO_EMAIL.equalsIgnoreCase(email)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "That email address is reserved. Please use a different one."));
+        }
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "Email is already registered. Please sign in instead."));

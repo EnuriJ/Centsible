@@ -1,18 +1,22 @@
 package com.centsible.backend.security;
 
+import com.centsible.backend.config.DataSeeder;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -23,6 +27,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
 
 @Configuration
 @EnableWebSecurity
@@ -65,14 +71,31 @@ public class SecurityConfig {
                         auth.requestMatchers("/h2-console/**").permitAll();
                     }
 
+                    // The shared demo account is read-only: any request that could change state
+                    // needs a signed-in user who is NOT the demo user. This is enforced here, on
+                    // the server, so it holds no matter what the frontend does. (Anonymous callers
+                    // are denied too, which yields 401; the demo user gets 403.)
+                    auth.requestMatchers(SecurityConfig::isStateChangingRequest)
+                            .access((authentication, context) ->
+                                    new AuthorizationDecision(isSignedInNonDemoUser(authentication)));
+
                     // All other API requests require authentication
                     auth.anyRequest().authenticated();
                 })
-                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"" + authException.getMessage() + "\"}");
-                }))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"" + authException.getMessage() + "\"}");
+                        })
+                        // The only rule that denies an already signed-in user is the demo
+                        // read-only rule above, so the 403 message speaks to that.
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"The demo account is read-only. "
+                                    + "Create your own account to upload and edit data.\"}");
+                        }))
                 // jwtAuthFilter must be registered first - addFilterBefore can only
                 // position a new filter relative to one that already has a registered
                 // order, and a custom filter class only gets one once it's been added.
@@ -87,6 +110,22 @@ public class SecurityConfig {
         }
 
         return http.build();
+    }
+
+    private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS", "TRACE");
+
+    private static boolean isStateChangingRequest(HttpServletRequest request) {
+        return !SAFE_METHODS.contains(request.getMethod().toUpperCase());
+    }
+
+    private static boolean isSignedInNonDemoUser(Supplier<Authentication> authentication) {
+        Authentication auth = authentication.get();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return false;
+        }
+        boolean isDemo = auth.getPrincipal() instanceof CustomUserDetails details
+                && DataSeeder.DEMO_EMAIL.equalsIgnoreCase(details.getUsername());
+        return !isDemo;
     }
 
     @Bean
