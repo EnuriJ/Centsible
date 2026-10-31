@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import Logo from './Logo'
+import AuthShowcase from './AuthShowcase'
 import { DEMO_EMAIL, DEMO_PASSWORD } from '../utils/demo'
 
 export default function AuthForm() {
@@ -50,6 +51,7 @@ export default function AuthForm() {
 
   return (
     <div className="auth-container">
+      <AuthShowcase />
       <div className="auth-card">
         <div className="auth-brand-center">
           <Logo size={52} showText={false} />

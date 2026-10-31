@@ -740,10 +740,32 @@
 /* Auth View & Form */
 .auth-container {
   min-height: 80vh;
+  max-width: 1040px;
+  margin: 0 auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1.5rem;
   padding: 2rem 1rem;
+}
+
+/* Let flex children shrink below their content width so nothing forces horizontal scroll */
+.auth-container > * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 900px) {
+  .auth-container {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 2.5rem;
+  }
+
+  .auth-container .auth-card {
+    flex: 0 0 440px;
+  }
 }
 
 .auth-card {
@@ -776,7 +798,9 @@
 .auth-subtitle {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 0.65rem;
   font-family: var(--font-ui);
   font-size: 0.85rem;
   color: var(--centsible-text-secondary);
@@ -1164,4 +1188,205 @@
 
 .upload-card--readonly .upload-controls {
   opacity: 0.55;
+}
+
+/* Sign-in showcase: a sample chart that draws itself once on load.
+   Every element's resting state is the finished chart; the animations only add a `from`
+   state with `backwards` fill, so removing them (reduced motion) leaves the final picture. */
+.auth-showcase {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 2.25rem 2.25rem 1.75rem;
+  border-radius: var(--centsible-radius);
+  color: #fff;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(160deg, #0b6048 0%, #064634 55%, #04362a 100%);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
+}
+
+.auth-showcase-title {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-brand);
+  font-size: clamp(1.7rem, 3.2vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.auth-showcase-copy {
+  margin: 0;
+  max-width: 34ch;
+  font-family: var(--font-body);
+  font-size: 0.975rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.auth-showcase-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ash-grid {
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1;
+}
+
+.ash-month {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  fill: rgba(255, 255, 255, 0.62);
+}
+
+.ash-bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: ash-rise 0.7s cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+  animation-delay: calc(0.15s + var(--i) * 0.09s);
+}
+
+.ash-bar--income {
+  fill: #7ed6bc;
+}
+
+.ash-bar--spending {
+  fill: rgba(255, 255, 255, 0.3);
+  animation-delay: calc(0.25s + var(--i) * 0.09s);
+}
+
+.ash-line {
+  stroke: var(--centsible-gold);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: ash-draw 1.7s cubic-bezier(0.45, 0, 0.2, 1) 0.9s backwards;
+}
+
+.ash-marker-dot {
+  fill: var(--centsible-gold);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ash-pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) 2.5s backwards;
+}
+
+.ash-marker-ring {
+  fill: none;
+  stroke: var(--centsible-gold);
+  stroke-width: 1.5;
+  opacity: 0; /* only visible while the pulse animation runs */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ash-pulse 3.2s ease-out 3.2s infinite;
+}
+
+.ash-callout {
+  font-family: var(--font-brand);
+  font-size: 17px;
+  font-weight: 700;
+  fill: #fff;
+  animation: ash-fade 0.6s ease 2.7s backwards;
+}
+
+.auth-showcase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.auth-showcase-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.auth-showcase-legend .auth-showcase-note {
+  margin-left: auto;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ash-swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+}
+
+.ash-swatch--income {
+  background: #7ed6bc;
+}
+
+.ash-swatch--spending {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.ash-swatch--savings {
+  height: 3px;
+  width: 0.9rem;
+  border-radius: 2px;
+  background: var(--centsible-gold);
+}
+
+@keyframes ash-rise {
+  from { transform: scaleY(0); }
+}
+
+@keyframes ash-draw {
+  from { stroke-dashoffset: 1; }
+}
+
+@keyframes ash-pop {
+  from { transform: scale(0); }
+}
+
+@keyframes ash-fade {
+  from { opacity: 0; }
+}
+
+@keyframes ash-pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+
+@media (max-width: 899px) {
+  /* On phones the card is what matters: keep a short chart above it, drop the text */
+  .auth-showcase {
+    max-width: 440px;
+    padding: 1.1rem 1.25rem 0.9rem;
+  }
+
+  .auth-showcase-text {
+    display: none;
+  }
+
+  .auth-showcase-chart {
+    max-height: 190px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ash-bar,
+  .ash-line,
+  .ash-marker-dot,
+  .ash-marker-ring,
+  .ash-callout {
+    animation: none;
+  }
 }
