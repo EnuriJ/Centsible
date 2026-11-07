@@ -2,6 +2,11 @@
 
 [![CI](https://github.com/EnuriJ/Centsible/actions/workflows/ci.yml/badge.svg)](https://github.com/EnuriJ/Centsible/actions/workflows/ci.yml)
 
+**Live demo: [centsible-psi.vercel.app](https://centsible-psi.vercel.app/)** —
+opens a read-only demo portfolio, or create your own account to import
+statements. The server sleeps when idle, so the first load can take about a
+minute to wake up.
+
 Smart finance made simple — a personal finance dashboard for tracking spending
 and income, with secure multi-user accounts, built with a React frontend and
 a Spring Boot backend.
@@ -112,9 +117,15 @@ Both run automatically on every push and pull request (GitHub Actions,
 
 ## Roadmap
 
-- [ ] **Live deployment** — set up and documented in [`DEPLOY.md`](./DEPLOY.md)
-      (Vercel + Neon Postgres); the live link goes here once it's up
+- [x] **Live deployment** — running on Vercel with Neon Postgres; setup is
+      documented in [`DEPLOY.md`](./DEPLOY.md)
 
 ## Screenshots
 
-*(coming soon)*
+Taken from the live read-only demo (sample data, no real transactions).
+
+![Import screen and read-only demo banner](docs/screenshots/01-import-and-demo-banner.png)
+
+![Financial overview, spend by category and income sources](docs/screenshots/02-overview-and-categories.png)
+
+![Monthly cash flow and spend over time](docs/screenshots/03-cash-flow-and-trends.png)

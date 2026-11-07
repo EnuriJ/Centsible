@@ -39,7 +39,14 @@ export default function SpendByCategoryChart({ refreshKey, startDate, endDate, c
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-            <XAxis dataKey="category" tick={{ fontSize: 12 }} />
+            <XAxis
+              dataKey="category"
+              tick={{ fontSize: 12 }}
+              interval={0}
+              angle={-30}
+              textAnchor="end"
+              height={70}
+            />
             <YAxis tickFormatter={formatCompactLKR} width={75} />
             <Tooltip formatter={(value) => [formatLKR(value), 'Total Spent']} />
             <Bar dataKey="totalSpent" radius={[4, 4, 0, 0]}>
