@@ -8,6 +8,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
@@ -46,6 +48,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(Map.of("error", "File too large. Maximum upload size is 10MB."));
+    }
+
+    // Wrong HTTP method for an existing URL, or a URL that doesn't exist: these are the
+    // caller's mistake, so answer 405 / 404 instead of letting the catch-all call them 500s.
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, String>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(Map.of("error", "That request method isn't supported here."));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "Not found."));
     }
 
     // Catch-all: log the real exception server-side, never expose it to the client.

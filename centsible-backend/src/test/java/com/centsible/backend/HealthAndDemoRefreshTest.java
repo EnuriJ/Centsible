@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,7 +62,13 @@ public class HealthAndDemoRefreshTest {
     @Test
     void healthCheckDoesNotOpenUpAnythingElse() throws Exception {
         mockMvc.perform(get("/api/transactions")).andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/health")).andExpect(status().is4xxClientError());
+        // Only GET is open: any other method on the health URL still needs a signed-in user
+        mockMvc.perform(post("/api/health")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aWrongMethodOnARealUrlIs405NotAServerError() throws Exception {
+        mockMvc.perform(put("/api/auth/login")).andExpect(status().isMethodNotAllowed());
     }
 
     // @Transactional: the test runs in a transaction that is rolled back afterwards, which is

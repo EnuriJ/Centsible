@@ -64,7 +64,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     // Permit preflight OPTIONS requests, auth endpoints and the health check
                     auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
-                    auth.requestMatchers("/api/auth/**", "/api/health", "/error").permitAll();
+                    auth.requestMatchers("/api/auth/**", "/error").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/health").permitAll();
 
                     // Only permit H2 console if explicitly enabled in properties
                     if (h2ConsoleEnabled) {
