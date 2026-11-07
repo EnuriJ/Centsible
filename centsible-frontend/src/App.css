@@ -849,6 +849,18 @@
   line-height: 1.4;
 }
 
+.auth-wakeup-note {
+  background: var(--centsible-mint-bg);
+  border: 1px solid var(--centsible-mint-badge);
+  color: var(--centsible-text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.825rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}
+
 .auth-form {
   display: flex;
   flex-direction: column;

@@ -40,16 +40,17 @@ Then run e.g. `SELECT * FROM TRANSACTIONS;` to see the seeded rows.
 
 ### Production (`SPRING_PROFILES_ACTIVE=prod`)
 The `prod` profile (`application-prod.properties`) switches to PostgreSQL, turns
-off the H2 console and SQL logging, and **requires** the values below - the app
-refuses to start if any is missing, rather than falling back to something
-insecure.
+off the H2 console and SQL logging, and **requires** `DATABASE_URL` and `JWT_SECRET`
+- the app refuses to start if either is missing, rather than falling back to
+something insecure. The `Dockerfile` sets this profile by default. Step-by-step
+hosting instructions are in [`../DEPLOY.md`](../DEPLOY.md).
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | JDBC URL, e.g. `jdbc:postgresql://host:5432/centsible?sslmode=require` (not the `postgres://...` form some hosts hand out) |
-| `DATABASE_USERNAME` / `DATABASE_PASSWORD` | Database credentials |
+| `DATABASE_URL` | Either the `postgres://user:password@host/db` URL most hosts hand out (pasted as-is; the login is taken from it), or a JDBC URL such as `jdbc:postgresql://host:5432/centsible?sslmode=require` |
+| `DATABASE_USERNAME` / `DATABASE_PASSWORD` | Only with a JDBC `DATABASE_URL` |
 | `JWT_SECRET` | Random secret, at least 32 characters |
-| `CORS_ALLOWED_ORIGINS` | Deployed frontend URL(s), comma-separated |
+| `CORS_ALLOWED_ORIGINS` | Optional - only when the frontend is on a different domain than the API (not needed in the single-domain Vercel setup), comma-separated |
 | `PORT` | Optional - port to listen on (default 8080) |
 | `DEMO_ENABLED` | Optional - `false` skips seeding the shared read-only demo account (default `true`) |
 

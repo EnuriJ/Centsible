@@ -112,9 +112,8 @@ Both run automatically on every push and pull request (GitHub Actions,
 
 ## Roadmap
 
-- [ ] **Live deployment** — host the frontend (e.g. Vercel/Netlify) and
-      backend (e.g. Render/Railway) so the app can be tried without cloning
-      and running it locally
+- [ ] **Live deployment** — set up and documented in [`DEPLOY.md`](./DEPLOY.md)
+      (Vercel + Neon Postgres); the live link goes here once it's up
 
 ## Screenshots
 

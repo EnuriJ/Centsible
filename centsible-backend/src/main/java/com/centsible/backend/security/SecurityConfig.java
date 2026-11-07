@@ -62,9 +62,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
-                    // Permit preflight OPTIONS requests and auth endpoints
+                    // Permit preflight OPTIONS requests, auth endpoints and the health check
                     auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
-                    auth.requestMatchers("/api/auth/**", "/error").permitAll();
+                    auth.requestMatchers("/api/auth/**", "/api/health", "/error").permitAll();
 
                     // Only permit H2 console if explicitly enabled in properties
                     if (h2ConsoleEnabled) {

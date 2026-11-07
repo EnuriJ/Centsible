@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import api from '../api/client'
 import { useAuth } from '../context/useAuth'
+import { useDelayedFlag } from '../hooks/useDelayedFlag'
 import Logo from './Logo'
 import AuthShowcase from './AuthShowcase'
 import { DEMO_EMAIL, DEMO_PASSWORD } from '../utils/demo'
@@ -12,6 +14,15 @@ export default function AuthForm() {
   const [displayName, setDisplayName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  // On a free host the server sleeps when nobody has used it for a while, and the first
+  // request can take up to a minute. Say so, rather than leaving a button that seems stuck.
+  const slow = useDelayedFlag(submitting, 4000)
+
+  // Ping the server as soon as the page opens, so a sleeping one starts waking up while the
+  // visitor is still reading. The result doesn't matter.
+  useEffect(() => {
+    api.get('/health').catch(() => {})
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -84,6 +95,13 @@ export default function AuthForm() {
             Create Account
           </button>
         </div>
+
+        {slow && (
+          <p className="auth-wakeup-note" role="status">
+            Waking the server up. It sleeps when it isn&rsquo;t being used, so the first request
+            can take up to a minute.
+          </p>
+        )}
 
         {error && (
           <div className="auth-error-banner" role="alert">

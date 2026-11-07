@@ -11,10 +11,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Optional;
 
 /**
  * Seeds the shared, read-only demo user with synthetic showcase transactions and default
@@ -28,6 +28,14 @@ import java.util.Optional;
 public class DataSeeder implements CommandLineRunner {
 
     public static final String DEMO_EMAIL = "demo@centsible.com";
+
+    /**
+     * The sample transactions are dated relative to the day they were created. On a long-lived
+     * hosted database they would slowly drift into the past, so once the newest one is older
+     * than this the sample data is replaced with a fresh set. Only the shared demo account's
+     * data is ever touched.
+     */
+    static final int STALE_AFTER_DAYS = 45;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -48,6 +56,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     @Override
+    @Transactional
     public void run(String... args) {
         // Provision demo user if not present
         User demoUser = userRepository.findByEmail(DEMO_EMAIL)
@@ -58,8 +67,13 @@ public class DataSeeder implements CommandLineRunner {
         // Seed default categories and categorization rules for demo user
         categorizationService.seedDefaultCategoriesAndRules(demoUser);
 
-        // Seed synthetic showcase transactions strictly for demo user if they have none
-        if (transactionRepository.countByUserId(demoUser.getId()) == 0) {
+        // Seed synthetic showcase transactions strictly for demo user if they have none,
+        // or replace them when they have gone stale.
+        LocalDate newest = transactionRepository.findMaxDateByUserId(demoUser.getId());
+        if (newest == null) {
+            seedSyntheticDemoTransactions(demoUser);
+        } else if (newest.isBefore(LocalDate.now().minusDays(STALE_AFTER_DAYS))) {
+            transactionRepository.deleteAllByUserId(demoUser.getId());
             seedSyntheticDemoTransactions(demoUser);
         }
     }

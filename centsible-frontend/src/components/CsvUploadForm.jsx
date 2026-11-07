@@ -2,6 +2,10 @@ import { useState } from 'react'
 import api from '../api/client'
 import { formatLKR } from '../utils/currency'
 
+// The hosted site can't pass requests bigger than 4.5 MB through to the server, so stay under
+// that there. Locally the backend's own 10 MB limit applies.
+const MAX_UPLOAD_MB = import.meta.env.PROD ? 4 : 10
+
 export default function CsvUploadForm({ onUploadSuccess, readOnly = false }) {
   const [file, setFile] = useState(null)
   const [status, setStatus] = useState('idle') // idle | uploading | success | error
@@ -9,9 +13,19 @@ export default function CsvUploadForm({ onUploadSuccess, readOnly = false }) {
   const [errorMessage, setErrorMessage] = useState(null)
 
   function handleFileChange(e) {
-    setFile(e.target.files[0] ?? null)
-    setStatus('idle')
+    const chosen = e.target.files[0] ?? null
     setResult(null)
+    if (chosen && chosen.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      setFile(null)
+      setErrorMessage(
+        `That file is ${(chosen.size / (1024 * 1024)).toFixed(1)} MB. Files up to ${MAX_UPLOAD_MB} MB can be imported - try a shorter date range.`,
+      )
+      setStatus('error')
+      return
+    }
+    setFile(chosen)
+    setErrorMessage(null)
+    setStatus('idle')
   }
 
   async function handleUpload() {
@@ -32,7 +46,14 @@ export default function CsvUploadForm({ onUploadSuccess, readOnly = false }) {
     } catch (err) {
       console.error('Upload failed:', err)
       // A 403 carries a deliberate, user-readable reason (e.g. the demo account is read-only)
-      setErrorMessage(err.response?.status === 403 ? err.response?.data?.error ?? null : null)
+      const code = err.response?.status
+      if (code === 403) {
+        setErrorMessage(err.response?.data?.error ?? null)
+      } else if (code === 413) {
+        setErrorMessage(`That file is too large. Files up to ${MAX_UPLOAD_MB} MB can be imported - try a shorter date range.`)
+      } else {
+        setErrorMessage(null)
+      }
       setStatus('error')
     }
   }

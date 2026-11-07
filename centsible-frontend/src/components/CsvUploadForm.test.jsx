@@ -126,4 +126,43 @@ describe('CsvUploadForm', () => {
 
     expect(await screen.findByText(/Upload failed\. Check the backend/)).toBeInTheDocument()
   })
+
+  it('refuses a file that is too big before sending anything', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<CsvUploadForm />)
+    const { input, file } = chooseFile(container)
+    Object.defineProperty(file, 'size', { value: 11 * 1024 * 1024 })
+
+    await user.upload(input, file)
+
+    expect(screen.getByText(/That file is 11\.0 MB/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('clears the size warning once a smaller file is chosen', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<CsvUploadForm />)
+    const { input, file } = chooseFile(container)
+    const big = new File(['x'], 'big.csv', { type: 'text/csv' })
+    Object.defineProperty(big, 'size', { value: 11 * 1024 * 1024 })
+    await user.upload(input, big)
+    expect(screen.getByText(/That file is/)).toBeInTheDocument()
+
+    await user.upload(input, file)
+
+    expect(screen.queryByText(/That file is/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Upload' })).toBeEnabled()
+  })
+
+  it('explains a 413 from the server', async () => {
+    api.post.mockRejectedValue({ response: { status: 413, data: 'Payload Too Large' } })
+    const user = userEvent.setup()
+    const { container } = render(<CsvUploadForm />)
+    const { input, file } = chooseFile(container)
+    await user.upload(input, file)
+    await user.click(screen.getByRole('button', { name: 'Upload' }))
+
+    expect(await screen.findByText(/That file is too large/)).toBeInTheDocument()
+  })
 })
