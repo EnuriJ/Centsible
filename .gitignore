@@ -12,3 +12,5 @@ centsible-frontend/dist/
 .vscode/
 *.iml
 .DS_Store
+# Real bank statements contain personal data - never commit them
+*.pdf

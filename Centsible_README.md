@@ -16,7 +16,9 @@ a Spring Boot backend.
   user's data is fully isolated from every other user's
 - **Import bank statements** — upload a CSV or PDF of transactions; they're
   parsed, auto-categorized by keyword rules, and stored, with duplicate
-  detection and per-row parse-error reporting
+  detection and per-row parse-error reporting. PDFs are read by looking at
+  the statement's table layout rather than a fixed bank template (see
+  [Statement PDFs](#statement-pdfs))
 - **Dashboard** — total income/expense/net summary, spend by category (bar
   chart), income by category (table), monthly cash flow (income vs. expense
   vs. net savings), and category spend trend over time (line chart)
@@ -68,6 +70,26 @@ seeding it.
 
 Or sign up with your own account — new users start with a default set of
 categories and keyword rules, and can import their own CSV or PDF statement.
+
+## Statement PDFs
+
+The PDF reader doesn't hard-code any one bank. It finds the table's header
+row (Date, Description/Particulars, Debit/Credit or Payments/Receipts,
+Balance…), works out which words sit under which column, and rebuilds each
+transaction from there. It checks its work against the running balance, so a
+row that doesn't add up is reported rather than silently trusted.
+
+- Tested against synthetic statements laid out like Commercial Bank,
+  Sampath Bank and Seylan Bank (oldest-first and newest-first, separate
+  debit/credit columns or a single signed column, wrapped descriptions,
+  multi-page with repeated headers).
+- **Not supported:** scanned/photographed statements (no OCR) and
+  password-protected PDFs. If a bank's layout isn't recognised, the upload
+  says so — export a CSV instead.
+- Uploaded files are read in memory and never stored; only the extracted
+  rows are saved.
+- Real statements contain personal data, so `*.pdf` is git-ignored. Tests build
+  their own invented statements in code.
 
 ## Running the tests
 

@@ -47,6 +47,20 @@
             <artifactId>commons-csv</artifactId>
             <version>1.11.0</version>
         </dependency>
+
+        <!-- Position-aware PDF text reading for bank statements. Spring already provides
+             commons-logging (spring-jcl), so PDFBox's copy is excluded. -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>2.0.31</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>

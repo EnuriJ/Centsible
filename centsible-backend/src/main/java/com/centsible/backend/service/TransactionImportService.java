@@ -6,6 +6,10 @@ import com.centsible.backend.model.Transaction;
 import com.centsible.backend.model.User;
 import com.centsible.backend.repository.CategoryRepository;
 import com.centsible.backend.repository.TransactionRepository;
+import com.centsible.backend.service.statement.ParsedStatement;
+import com.centsible.backend.service.statement.ParsedTransaction;
+import com.centsible.backend.service.statement.PdfWordExtractor;
+import com.centsible.backend.service.statement.StatementTableParser;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -177,7 +181,9 @@ public class TransactionImportService {
     }
 
     /**
-     * Ingests transactions directly from a PDF bank statement (e.g. Commercial Bank of Ceylon) for a specific user.
+     * Ingests transactions directly from a PDF bank statement for a specific user.
+     * The statement's table is read generically (see {@link StatementTableParser}), so no
+     * particular bank is required; the original Commercial Bank reader is kept as a fallback.
      */
     public ImportResultDTO importPdf(MultipartFile file, User user) {
         int imported = 0;
@@ -188,106 +194,52 @@ public class TransactionImportService {
         BigDecimal totalExpense = BigDecimal.ZERO;
         Set<String> encounteredCategories = new HashSet<>();
         List<String> parseErrors = new ArrayList<>();
+        List<ParsedTransaction> parsed = new ArrayList<>();
 
         try {
-            byte[] pdfBytes = file.getBytes();
-            List<String> rawLines = PdfStatementExtractor.extractLines(pdfBytes);
-
-            BigDecimal previousBalance = null;
-            for (int idx = 0; idx < rawLines.size(); idx++) {
-                String upper = rawLines.get(idx).toUpperCase();
-                if (upper.contains("BALANCE AS OF") || upper.contains("OPENING BALANCE")) {
-                    Matcher ownLine = Pattern.compile("([0-9,]+\\.\\d{2})").matcher(rawLines.get(idx));
-                    if (ownLine.find()) {
-                        previousBalance = parseAmountString(ownLine.group(1));
-                    } else if (idx > 0 && AMOUNT_TOKEN_PATTERN.matcher(rawLines.get(idx - 1)).matches()) {
-                        previousBalance = parseAmountString(rawLines.get(idx - 1));
-                    }
-                    break;
-                }
-            }
-
-            List<String> rows = regroupPdfLines(rawLines);
-
-            for (int rowNum = 0; rowNum < rows.size(); rowNum++) {
-                String line = rows.get(rowNum).trim();
-
-                if (isNonTransactionRow(line.toUpperCase())) {
-                    continue;
-                }
-
-                Matcher matcher = STATEMENT_LINE_PATTERN.matcher(line);
-                if (!matcher.matches()) {
-                    continue;
-                }
-
-                try {
-                    String postingDateStr = matcher.group(1);
-                    String effectiveDateStr = matcher.group(2);
-                    String description = matcher.group(3).trim();
-                    String firstNumStr = matcher.group(4);
-                    String secondNumStr = matcher.group(5);
-
-                    // Prefer Effective Date over Posting Date
-                    LocalDate date = parseFlexibleDate(effectiveDateStr);
-                    if (date == null) {
-                        date = parseFlexibleDate(postingDateStr);
-                    }
-                    if (date == null) continue;
-
-                    BigDecimal transactionAmount;
-                    BigDecimal currentBalance = null;
-
-                    if (secondNumStr != null) {
-                        BigDecimal parsedVal = parseAmountString(firstNumStr);
-                        currentBalance = parseAmountString(secondNumStr);
-
-                        if (previousBalance != null && currentBalance != null) {
-                            BigDecimal balanceDiff = currentBalance.subtract(previousBalance);
-                            transactionAmount = balanceDiff;
-                        } else {
-                            if (isIncomeDescription(description)) {
-                                transactionAmount = parsedVal;
-                            } else {
-                                transactionAmount = parsedVal.negate();
-                            }
-                        }
-                        previousBalance = currentBalance;
-                    } else {
-                        BigDecimal parsedVal = parseAmountString(firstNumStr);
-                        transactionAmount = isIncomeDescription(description) ? parsedVal : parsedVal.negate();
-                    }
-
-                    // Auto-categorize for this user
-                    Category category = categorizationService.categorize(description, user);
-
-                    // Deduplication check scoped to user
-                    boolean isDuplicate = transactionRepository
-                            .existsByUserIdAndDateAndDescriptionAndAmountAndCategory(user.getId(), date, description, transactionAmount, category);
-                    if (isDuplicate) {
-                        duplicateCount++;
-                        continue;
-                    }
-
-                    transactionRepository.save(new Transaction(date, description, transactionAmount, category, user));
-                    imported++;
-                    encounteredCategories.add(category.getName());
-
-                    if (transactionAmount.compareTo(BigDecimal.ZERO) > 0) {
-                        incomeCount++;
-                        totalIncome = totalIncome.add(transactionAmount);
-                    } else {
-                        expenseCount++;
-                        totalExpense = totalExpense.add(transactionAmount.abs());
-                    }
-
-                } catch (Exception parseErr) {
-                    parseErrors.add("Row " + (rowNum + 1) + ": " + parseErr.getMessage());
-                }
-            }
-
+            parsed = readStatementPdf(file.getBytes(), parseErrors);
         } catch (Exception e) {
             parseErrors.add("Could not process uploaded PDF: " + e.getMessage());
+        }
+
+        int rowNum = 0;
+        for (ParsedTransaction row : parsed) {
+            rowNum++;
+            try {
+                LocalDate date = row.date();
+                String description = row.description();
+                BigDecimal transactionAmount = row.amount();
+
+                // Auto-categorize for this user
+                Category category = categorizationService.categorize(description, user);
+
+                // Deduplication check scoped to user
+                boolean isDuplicate = transactionRepository
+                        .existsByUserIdAndDateAndDescriptionAndAmountAndCategory(user.getId(), date, description, transactionAmount, category);
+                if (isDuplicate) {
+                    duplicateCount++;
+                    continue;
+                }
+
+                transactionRepository.save(new Transaction(date, description, transactionAmount, category, user));
+                imported++;
+                encounteredCategories.add(category.getName());
+
+                if (transactionAmount.compareTo(BigDecimal.ZERO) > 0) {
+                    incomeCount++;
+                    totalIncome = totalIncome.add(transactionAmount);
+                } else {
+                    expenseCount++;
+                    totalExpense = totalExpense.add(transactionAmount.abs());
+                }
+            } catch (Exception rowError) {
+                parseErrors.add("Row " + rowNum + ": " + rowError.getMessage());
+            }
+        }
+
+        if (imported == 0 && duplicateCount == 0 && parseErrors.isEmpty()) {
+            parseErrors.add("No transactions were found in this PDF. Scanned or photographed statements can't be read "
+                    + "yet - if this one is a scan, or the bank's layout isn't recognised, export a CSV instead.");
         }
 
         return new ImportResultDTO(
@@ -300,6 +252,105 @@ public class TransactionImportService {
                 totalExpense,
                 encounteredCategories.size()
         );
+    }
+
+    /**
+     * Reads a statement PDF into transactions: first with the layout-aware reader, then (if that
+     * finds nothing) with the original line-based Commercial Bank reader.
+     */
+    private List<ParsedTransaction> readStatementPdf(byte[] pdfBytes, List<String> parseErrors) {
+        // The bounded legacy extractor doubles as a safety check: it refuses PDFs that would
+        // inflate to an unreasonable size ("zip bombs") before the PDF library ever sees them.
+        List<String> rawLines = PdfStatementExtractor.extractLines(pdfBytes);
+
+        try {
+            ParsedStatement statement = StatementTableParser.parse(PdfWordExtractor.extract(pdfBytes));
+            if (!statement.transactions().isEmpty()) {
+                parseErrors.addAll(statement.notes());
+                return statement.transactions();
+            }
+        } catch (IllegalArgumentException e) {
+            // Password-protected or too large: say so rather than guessing
+            throw e;
+        } catch (IOException | RuntimeException e) {
+            // The PDF library couldn't make sense of it; fall through to the original reader
+        }
+
+        return parseWithLegacyReader(rawLines, parseErrors);
+    }
+
+    /** The original reader for Commercial Bank style statements (one text line per cell). */
+    private List<ParsedTransaction> parseWithLegacyReader(List<String> rawLines, List<String> parseErrors) {
+        List<ParsedTransaction> result = new ArrayList<>();
+
+        BigDecimal previousBalance = null;
+        for (int idx = 0; idx < rawLines.size(); idx++) {
+            String upper = rawLines.get(idx).toUpperCase();
+            if (upper.contains("BALANCE AS OF") || upper.contains("OPENING BALANCE")) {
+                Matcher ownLine = Pattern.compile("([0-9,]+\\.\\d{2})").matcher(rawLines.get(idx));
+                if (ownLine.find()) {
+                    previousBalance = parseAmountString(ownLine.group(1));
+                } else if (idx > 0 && AMOUNT_TOKEN_PATTERN.matcher(rawLines.get(idx - 1)).matches()) {
+                    previousBalance = parseAmountString(rawLines.get(idx - 1));
+                }
+                break;
+            }
+        }
+
+        List<String> rows = regroupPdfLines(rawLines);
+
+        for (int rowNum = 0; rowNum < rows.size(); rowNum++) {
+            String line = rows.get(rowNum).trim();
+
+            if (isNonTransactionRow(line.toUpperCase())) {
+                continue;
+            }
+
+            Matcher matcher = STATEMENT_LINE_PATTERN.matcher(line);
+            if (!matcher.matches()) {
+                continue;
+            }
+
+            try {
+                String postingDateStr = matcher.group(1);
+                String effectiveDateStr = matcher.group(2);
+                String description = matcher.group(3).trim();
+                String firstNumStr = matcher.group(4);
+                String secondNumStr = matcher.group(5);
+
+                // Prefer Effective Date over Posting Date
+                LocalDate date = parseFlexibleDate(effectiveDateStr);
+                if (date == null) {
+                    date = parseFlexibleDate(postingDateStr);
+                }
+                if (date == null) continue;
+
+                BigDecimal transactionAmount;
+                BigDecimal currentBalance = null;
+
+                if (secondNumStr != null) {
+                    BigDecimal parsedVal = parseAmountString(firstNumStr);
+                    currentBalance = parseAmountString(secondNumStr);
+
+                    if (previousBalance != null && currentBalance != null) {
+                        transactionAmount = currentBalance.subtract(previousBalance);
+                    } else if (isIncomeDescription(description)) {
+                        transactionAmount = parsedVal;
+                    } else {
+                        transactionAmount = parsedVal.negate();
+                    }
+                    previousBalance = currentBalance;
+                } else {
+                    BigDecimal parsedVal = parseAmountString(firstNumStr);
+                    transactionAmount = isIncomeDescription(description) ? parsedVal : parsedVal.negate();
+                }
+
+                result.add(new ParsedTransaction(date, description, transactionAmount, currentBalance));
+            } catch (Exception parseErr) {
+                parseErrors.add("Row " + (rowNum + 1) + ": " + parseErr.getMessage());
+            }
+        }
+        return result;
     }
 
     private static List<String> regroupPdfLines(List<String> rawLines) {
