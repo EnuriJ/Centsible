@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import {
   ComposedChart,
   Bar,
@@ -10,31 +9,12 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import api from '../api/client'
+import { useAnalytics } from '../hooks/useAnalytics'
 import { formatLKR, formatCompactLKR } from '../utils/currency'
 
 export default function CashFlowChart({ refreshKey, startDate, endDate, category }) {
-  const [data, setData] = useState([])
-  const [status, setStatus] = useState('loading')
-
-  useEffect(() => {
-    setStatus('loading')
-    const params = {}
-    if (startDate) params.startDate = startDate
-    if (endDate) params.endDate = endDate
-    if (category) params.category = category
-
-    api
-      .get('/analytics/cash-flow-over-time', { params })
-      .then((res) => {
-        setData(res.data)
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error('Failed to load cash flow over time:', err)
-        setStatus('error')
-      })
-  }, [refreshKey, startDate, endDate, category])
+  const { data: loaded, status } = useAnalytics('/analytics/cash-flow-over-time', { startDate, endDate, category, refreshKey })
+  const data = loaded ?? []
 
   if (status === 'loading') {
     return <p className="chart-message">Loading cash flow trend…</p>

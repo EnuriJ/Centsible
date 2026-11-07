@@ -1,29 +1,13 @@
-import { useEffect, useState } from 'react'
-import api from '../api/client'
+import { useAnalytics } from '../hooks/useAnalytics'
 import { formatLKR } from '../utils/currency'
 
 export default function FinancialSummary({ refreshKey, startDate, endDate, category }) {
-  const [summary, setSummary] = useState(null)
-  const [status, setStatus] = useState('loading')
-
-  useEffect(() => {
-    setStatus('loading')
-    const params = {}
-    if (startDate) params.startDate = startDate
-    if (endDate) params.endDate = endDate
-    if (category) params.category = category
-
-    api
-      .get('/analytics/summary', { params })
-      .then((res) => {
-        setSummary(res.data)
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error('Failed to load financial summary:', err)
-        setStatus('error')
-      })
-  }, [refreshKey, startDate, endDate, category])
+  const { data: summary, status } = useAnalytics('/analytics/summary', {
+    startDate,
+    endDate,
+    category,
+    refreshKey,
+  })
 
   if (status === 'loading') {
     return (

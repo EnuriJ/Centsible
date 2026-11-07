@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import {
   LineChart,
   Line,
@@ -8,31 +7,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import api from '../api/client'
+import { useAnalytics } from '../hooks/useAnalytics'
 import { formatLKR, formatCompactLKR } from '../utils/currency'
 
 export default function SpendOverTimeChart({ refreshKey, startDate, endDate, category }) {
-  const [data, setData] = useState([])
-  const [status, setStatus] = useState('loading')
-
-  useEffect(() => {
-    setStatus('loading')
-    const params = {}
-    if (startDate) params.startDate = startDate
-    if (endDate) params.endDate = endDate
-    if (category) params.category = category
-
-    api
-      .get('/analytics/spend-over-time', { params })
-      .then((res) => {
-        setData(res.data)
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error('Failed to load spend-over-time:', err)
-        setStatus('error')
-      })
-  }, [refreshKey, startDate, endDate, category])
+  const { data: loaded, status } = useAnalytics('/analytics/spend-over-time', { startDate, endDate, category, refreshKey })
+  const data = loaded ?? []
 
   if (status === 'loading') {
     return <p className="chart-message">Loading spending trend…</p>

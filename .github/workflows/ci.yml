@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Only one run per branch at a time; a newer push cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Maven tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: centsible-backend
+    env:
+      # PDF reading uses PDFBox; headless mode avoids any display lookup on the runner.
+      JAVA_TOOL_OPTIONS: -Djava.awt.headless=true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Run tests
+        run: mvn --batch-mode --no-transfer-progress test
+
+  frontend:
+    name: Frontend (lint, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: centsible-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: centsible-frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint -- --deny-warnings
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build

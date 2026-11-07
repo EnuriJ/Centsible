@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -9,33 +8,15 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import api from '../api/client'
+import { useAnalytics } from '../hooks/useAnalytics'
 import { formatLKR, formatCompactLKR } from '../utils/currency'
 
 const HIGHLIGHT_COLOR = '#0D6E51'
 const DIMMED_COLOR = '#C5EBE1'
 
 export default function SpendByCategoryChart({ refreshKey, startDate, endDate, category }) {
-  const [data, setData] = useState([])
-  const [status, setStatus] = useState('loading')
-
-  useEffect(() => {
-    setStatus('loading')
-    const params = {}
-    if (startDate) params.startDate = startDate
-    if (endDate) params.endDate = endDate
-
-    api
-      .get('/analytics/spend-by-category', { params })
-      .then((res) => {
-        setData(res.data)
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error('Failed to load spend-by-category:', err)
-        setStatus('error')
-      })
-  }, [refreshKey, startDate, endDate])
+  const { data: loaded, status } = useAnalytics('/analytics/spend-by-category', { startDate, endDate, refreshKey })
+  const data = loaded ?? []
 
   if (status === 'loading') {
     return <p className="chart-message">Loading spending data…</p>

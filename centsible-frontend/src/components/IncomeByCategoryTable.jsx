@@ -1,28 +1,13 @@
-import { useEffect, useState } from 'react'
-import api from '../api/client'
+import { useAnalytics } from '../hooks/useAnalytics'
 import { formatLKR } from '../utils/currency'
 
 export default function IncomeByCategoryTable({ refreshKey, startDate, endDate }) {
-  const [data, setData] = useState([])
-  const [status, setStatus] = useState('loading')
-
-  useEffect(() => {
-    setStatus('loading')
-    const params = {}
-    if (startDate) params.startDate = startDate
-    if (endDate) params.endDate = endDate
-
-    api
-      .get('/analytics/income-by-category', { params })
-      .then((res) => {
-        setData(res.data)
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error('Failed to load income-by-category:', err)
-        setStatus('error')
-      })
-  }, [refreshKey, startDate, endDate])
+  const { data: loaded, status } = useAnalytics('/analytics/income-by-category', {
+    startDate,
+    endDate,
+    refreshKey,
+  })
+  const data = loaded ?? []
 
   const totalIncome = data.reduce((sum, item) => sum + (Number(item.totalIncome) || 0), 0)
 

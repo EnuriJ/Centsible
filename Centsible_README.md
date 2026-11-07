@@ -1,5 +1,7 @@
 # Centsible
 
+[![CI](https://github.com/EnuriJ/Centsible/actions/workflows/ci.yml/badge.svg)](https://github.com/EnuriJ/Centsible/actions/workflows/ci.yml)
+
 Smart finance made simple — a personal finance dashboard for tracking spending
 and income, with secure multi-user accounts, built with a React frontend and
 a Spring Boot backend.
@@ -33,7 +35,8 @@ a Spring Boot backend.
 | Backend  | Java 17, Spring Boot, Spring Data JPA |
 | Security | Spring Security, JWT (JJWT), BCrypt password hashing |
 | Database | H2 (file-based) |
-| Testing  | JUnit 5 (backend) |
+| Testing  | JUnit 5 (backend), Vitest + Testing Library (frontend) |
+| CI       | GitHub Actions |
 
 ## Project structure
 
@@ -94,19 +97,24 @@ row that doesn't add up is reported rather than silently trusted.
 ## Running the tests
 
 ```bash
+# Backend
 cd centsible-backend
 mvn test
+
+# Frontend
+cd centsible-frontend
+npm test
+npm run lint
 ```
+
+Both run automatically on every push and pull request (GitHub Actions,
+`.github/workflows/ci.yml`).
 
 ## Roadmap
 
 - [ ] **Live deployment** — host the frontend (e.g. Vercel/Netlify) and
       backend (e.g. Render/Railway) so the app can be tried without cloning
       and running it locally
-- [ ] **Frontend test coverage** — the backend has a JUnit suite; the
-      frontend doesn't yet have one
-- [ ] **CI** — run the backend test suite and frontend build/lint on every
-      push
 
 ## Screenshots
 
