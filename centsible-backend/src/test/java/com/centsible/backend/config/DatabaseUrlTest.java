@@ -120,4 +120,30 @@ public class DatabaseUrlTest {
         new DatabaseUrlEnvironmentPostProcessor().postProcessEnvironment(unset, null);
         assertNull(unset.getProperty("spring.datasource.url"));
     }
+
+    @Test
+    void prefersTheUnpooledUrlWhenBothAreProvided() {
+        StandardEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().addLast(new MapPropertySource("test", Map.of(
+                "DATABASE_URL", "postgres://app:pooledpw@ep-abc-pooler.example.com/centsible",
+                "DATABASE_URL_UNPOOLED", "postgres://app:directpw@ep-abc.example.com/centsible")));
+
+        new DatabaseUrlEnvironmentPostProcessor().postProcessEnvironment(environment, null);
+
+        assertEquals("jdbc:postgresql://ep-abc.example.com:5432/centsible?sslmode=require",
+                environment.getProperty("spring.datasource.url"));
+        assertEquals("directpw", environment.getProperty("spring.datasource.password"));
+    }
+
+    @Test
+    void usesDatabaseUrlWhenThereIsNoUnpooledOne() {
+        StandardEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().addLast(new MapPropertySource("test",
+                Map.of("DATABASE_URL", "postgres://app:pw@host.example.com/centsible")));
+
+        new DatabaseUrlEnvironmentPostProcessor().postProcessEnvironment(environment, null);
+
+        assertEquals("jdbc:postgresql://host.example.com:5432/centsible?sslmode=require",
+                environment.getProperty("spring.datasource.url"));
+    }
 }

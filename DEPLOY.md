@@ -14,7 +14,8 @@ in Beta, so if a step below doesn't behave as described, see [If something goes 
 
 ## Before you start
 
-1. A Vercel account (free "Hobby" plan is fine), signed in with the GitHub account that owns this repo.
+1. A Vercel account (free "Hobby" plan is fine), signed in with the GitHub account that owns this repo
+   (connect GitHub when Vercel asks).
 2. A strong secret for signing logins. In a terminal:
    ```bash
    openssl rand -base64 48
@@ -24,30 +25,33 @@ in Beta, so if a step below doesn't behave as described, see [If something goes 
 
 ## 1. Create the database
 
-1. In the Vercel dashboard open **Storage** (or the Marketplace) and create a **Neon** Postgres
-   database on the free plan. Pick a region near your Vercel region (the default Vercel region is
-   `iad1`, Washington DC).
-2. In the Neon console open the database's **Connection details**, turn **connection pooling off**,
-   and copy the connection string. It looks like
-   `postgres://user:password@ep-something.region.aws.neon.tech/neondb?sslmode=require`.
-   Paste it as-is later; the backend converts it itself.
+1. In the Vercel dashboard open **Storage** and create a **Neon** Postgres database
+   (**Create New Neon Account / Vercel Native**) on the free plan, in region **Washington, D.C.
+   (`iad1`)** to sit next to the backend.
+2. Connect it to the project (Production and Preview; untick Development, which doesn't allow
+   hidden values). Neon then adds its variables to the project by itself, including `DATABASE_URL`
+   (through a connection pooler) and `DATABASE_URL_UNPOOLED` (direct). The backend uses the
+   unpooled one when it exists and converts the `postgres://` form to a JDBC URL itself, so
+   there is nothing to copy or edit.
 
 ## 2. Create the Vercel project
 
-1. **Add New → Project**, import `EnuriJ/Centsible`.
-2. Leave **Root Directory** as the repository root (`./`). Vercel reads `vercel.json` and
-   sets up the two services.
-3. Before the first deploy, add these **Environment Variables** (all environments):
+1. **Add New → Project**, pick `EnuriJ/Centsible` from the repository list (don't paste the URL
+   into the top box: that clones a copy of the repo instead).
+2. Leave **Root Directory** as `./` and the preset as **Services**. Vercel reads `vercel.json` and
+   shows `web` (Vite, `/`) and `api` (Container, `/api`). Don't use "Import single project".
+3. Add these **Environment Variables** (Production and Preview):
 
    | Name | Value |
    |------|-------|
-   | `JWT_SECRET` | the secret from above |
-   | `DATABASE_URL` | the Neon connection string from step 1 |
+   | `JWT_SECRET` | the secret from above (mark it Sensitive) |
    | `PORT` | `8080` |
 
    `PORT` tells Vercel which port the backend listens on (Vercel assumes 80 otherwise).
    Optional: `DEMO_ENABLED=false` turns the demo account off.
 4. Click **Deploy**. The backend image builds with Maven, so the first build takes a few minutes.
+5. After connecting the database (step 1) you need a new deployment for the app to see the new
+   variables: push any commit, or use **Deployments → ⋯ → Redeploy**.
 
 ## 3. Check it works
 
@@ -71,7 +75,7 @@ Then put the address in the README and add it to the repository's "About" box on
 - **Demo data stays fresh.** On startup the backend replaces the demo account's sample
   transactions with new ones if the newest is over 45 days old. Only the demo account is touched.
 - **Free database.** Neon's free database pauses itself when idle and wakes on the next query.
-- **Secrets.** Only the three variables above are needed. Never put them in the repository.
+- **Secrets.** Only `JWT_SECRET` and `PORT` are added by hand; Neon adds the database ones. Never put secrets in the repository.
 - **Changing the secret or database** means editing the variable in Vercel and redeploying.
 
 ## If something goes wrong
@@ -80,7 +84,7 @@ Then put the address in the README and add it to the repository's "About" box on
 |--------------|-----------------------|
 | The site loads but `/api/health` gives 502/504 or never answers | The backend isn't listening where Vercel expects. Check `PORT=8080` is set, then check the deployment's runtime logs. |
 | Logs say `Could not resolve placeholder 'JWT_SECRET'` (or `DATABASE_URL`) | That variable is missing. Add it and redeploy. This is deliberate: the production setup refuses to start without secrets. |
-| Logs show a database connection or authentication error | Re-copy the Neon connection string (pooling **off**). Make sure it starts with `postgres://`. |
+| Logs show a database connection or authentication error | Check the Neon database is connected to the project (Settings → Environment Variables shows `DATABASE_URL` and `DATABASE_URL_UNPOOLED`) and redeploy. |
 | The demo or sign-up says "Too many requests" for everyone | The server can't see visitors' real addresses and treats them as one. Open an issue, or see `TRUSTED_PROXY_REGEX` in `application-prod.properties`. |
 | Vercel doesn't recognise `services` / the container runtime | These are Beta. Use the two-project fallback below. |
 
